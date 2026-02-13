@@ -29,7 +29,7 @@ export function StockCard({ stock }: StockCardProps) {
 
             const timer = setTimeout(() => {
                 setFlashClass("");
-            }, 300);
+            }, 1000);
 
             prevPriceRef.current = stock.price;
             return () => clearTimeout(timer);
@@ -38,7 +38,7 @@ export function StockCard({ stock }: StockCardProps) {
 
     return (
         <Link href={`/stock/${stock.symbol}`} className="h-full block">
-            <Card className={`w-full h-full hover:bg-accent/50 transition-colors cursor-pointer flex flex-col justify-between ${flashClass} duration-300`}>
+            <Card className={`w-full h-full hover:bg-accent/50 transition-colors cursor-pointer flex flex-col justify-between ${flashClass} duration-1000`}>
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium leading-tight">
                         {stock.name} ({stock.symbol})
