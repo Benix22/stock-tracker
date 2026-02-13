@@ -19,7 +19,8 @@ export function StockFundamentals({ quote }: StockFundamentalsProps) {
 
     const formatCurrency = (num: number | undefined) => {
         if (num === undefined || num === null) return "N/A"
-        return "$" + num.toFixed(2)
+        const decimals = quote.symbol === 'EUR=X' ? 4 : 2;
+        return "$" + num.toFixed(decimals)
     }
 
     const formatPercent = (num: number | undefined) => {

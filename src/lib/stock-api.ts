@@ -27,6 +27,10 @@ export interface HistoricalDataPoint {
 export async function getStockQuote(symbol: string): Promise<StockData | null> {
     try {
         const quote = await yahooFinance.quote(symbol);
+        if (!quote) {
+            console.warn(`No quote found for ${symbol}`);
+            return null;
+        }
         return {
             symbol: quote.symbol,
             price: quote.regularMarketPrice ?? 0,

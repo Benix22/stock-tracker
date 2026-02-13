@@ -14,12 +14,14 @@ import { ArrowUpIcon, ArrowDownIcon } from "lucide-react"
 interface StockPerformanceProps {
     performance: StockPerformance;
     livePrice?: number | null;
+    symbol: string;
 }
 
-export function StockPerformanceTable({ performance, livePrice }: StockPerformanceProps) {
+export function StockPerformanceTable({ performance, livePrice, symbol }: StockPerformanceProps) {
     if (!performance) return null;
 
     const currentPrice = livePrice || performance.currentPrice;
+    const decimals = symbol === 'EUR=X' ? 4 : 2;
 
     const calculateMetric = (baseMetric: any) => {
         const oldPrice = baseMetric.price; // historical price
@@ -65,7 +67,7 @@ export function StockPerformanceTable({ performance, livePrice }: StockPerforman
                                         </div>
                                     </TableCell>
                                     <TableCell className={`text-right ${colorClass}`}>
-                                        {isPositive ? "+" : ""}{period.metric.change.toFixed(2)} US$
+                                        {isPositive ? "+" : ""}{period.metric.change.toFixed(decimals)} US$
                                     </TableCell>
                                 </TableRow>
                             );

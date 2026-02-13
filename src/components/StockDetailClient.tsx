@@ -209,6 +209,7 @@ export function StockDetailClient({ symbol, initialPerformance }: StockDetailCli
                 <StockPerformanceTable
                     performance={initialPerformance}
                     livePrice={latestPrice}
+                    symbol={symbol}
                 />
             )}
         </div>

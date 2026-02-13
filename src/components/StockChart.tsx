@@ -12,9 +12,10 @@ interface StockChartProps {
     data: HistoricalDataPoint[];
     symbol: string;
     color?: string;
+    domain?: [number | "auto", number | "auto"];
 }
 
-export function StockChart({ data, symbol, color = "#2563eb" }: StockChartProps) {
+export function StockChart({ data, symbol, color = "#2563eb", domain }: StockChartProps) {
     if (!data || data.length === 0) {
         return (
             <Card className="col-span-4">
@@ -34,6 +35,11 @@ export function StockChart({ data, symbol, color = "#2563eb" }: StockChartProps)
     const maxPrice = Math.max(...data.map(d => d.close));
     const domainMin = Math.floor(minPrice * 0.95);
     const domainMax = Math.ceil(maxPrice * 1.05);
+
+    // Use provided domain or default calculation
+    const currentDomain = domain || [domainMin, domainMax];
+
+    const decimals = symbol === 'EUR=X' ? 4 : 2;
 
     return (
         <Card className="col-span-4">
@@ -66,14 +72,14 @@ export function StockChart({ data, symbol, color = "#2563eb" }: StockChartProps)
                             fontSize={12}
                             tickLine={false}
                             axisLine={false}
-                            domain={[domainMin, domainMax]}
-                            tickFormatter={(value) => `$${value}`}
+                            domain={currentDomain}
+                            tickFormatter={(value) => `$${Number(value).toFixed(decimals)}`}
                         />
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <Tooltip
                             contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: 'var(--radius)' }}
                             itemStyle={{ color: 'hsl(var(--foreground))' }}
-                            formatter={(value: any) => [`$${Number(value).toFixed(2)}`, "Price"]}
+                            formatter={(value: any) => [`$${Number(value).toFixed(decimals)}`, "Price"]}
                             labelFormatter={(value) => new Date(value).toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         />
                         <Area

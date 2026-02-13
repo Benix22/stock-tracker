@@ -104,6 +104,7 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
                                     symbol === 'SGHC' ? '#00A3E0' :
                                         undefined
                             }
+                            domain={symbol === 'EUR=X' ? [0.6, 1] : undefined}
                         />
                     ))}
                 </div>

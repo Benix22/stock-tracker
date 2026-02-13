@@ -246,6 +246,7 @@ export function RealTimeChart({
     }
 
     const gapPercentage = (gapCount / (displayData.length || 1)) * 100;
+    const decimals = symbol === 'EUR=X' ? 4 : 2;
     const strokeGradientId = `stroke-gradient-${symbol}`;
     const fillGradientId = `fill-gradient-${symbol}`;
 
@@ -265,18 +266,18 @@ export function RealTimeChart({
                     {!isCustom && previousClose ? (
                         <div className="flex items-center text-sm font-medium">
                             <span className={`flex items-center ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : ""}`}>
-                                {changeValue > 0 ? "+" : ""}{changeValue.toFixed(2)} US$
+                                {changeValue > 0 ? "+" : ""}{changeValue.toFixed(decimals)} US$
                                 <span className="flex items-center ml-1">
                                     (
                                     {changeValue > 0 ? <ArrowUpIcon className="h-3 w-3 mr-1" /> : changeValue < 0 ? <ArrowDownIcon className="h-3 w-3 mr-1" /> : null}
                                     {changePercent.toFixed(2)}%)
                                 </span>
                             </span>
-                            <span className="text-muted-foreground ml-2 text-xs">vs Prev Close (${previousClose.toFixed(2)})</span>
+                            <span className="text-muted-foreground ml-2 text-xs">vs Prev Close (${previousClose.toFixed(decimals)})</span>
 
                             <span className={`text-4xl font-bold ml-6 ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : "text-foreground"
                                 }`}>
-                                ${currentPrice.toFixed(2)}
+                                ${currentPrice.toFixed(decimals)}
                             </span>
                         </div>
                     ) : null}
@@ -310,7 +311,7 @@ export function RealTimeChart({
                             <YAxis
                                 yAxisId="price"
                                 domain={[domainMin, domainMax]}
-                                tickFormatter={(val) => isComparisonMode ? `${val.toFixed(2)}%` : val.toFixed(2)}
+                                tickFormatter={(val) => isComparisonMode ? `${val.toFixed(2)}%` : val.toFixed(decimals)}
                                 orientation="right"
                                 stroke="#888"
                                 tickLine={false}
@@ -340,7 +341,7 @@ export function RealTimeChart({
                                     // For Price lines:
                                     if (name === "Price" || name === symbol) {
                                         if (isComparisonMode) return [`${Number(value).toFixed(2)}%`, name];
-                                        return [`$${Number(value).toFixed(2)}`, name];
+                                        return [`$${Number(value).toFixed(decimals)}`, name];
                                     }
                                     if (name === comparisonSymbol) {
                                         return [`${Number(value).toFixed(2)}%`, name];

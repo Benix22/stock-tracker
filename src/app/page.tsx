@@ -6,7 +6,7 @@ import { MarketMovers } from "@/components/MarketMovers";
 export const revalidate = 60; // Revalidate every minute
 
 export default async function Dashboard() {
-  const symbols = ['SGHC', 'NVDA', 'MSFT', 'GOOGL', 'BTC-USD'];
+  const symbols = ['SGHC', 'NVDA', 'MSFT', 'GOOGL', 'BTC-USD', 'EUR=X'];
 
   // Fetch initial data
   const [stocksData, gainers, losers] = await Promise.all([

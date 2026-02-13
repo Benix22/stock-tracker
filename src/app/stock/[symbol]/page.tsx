@@ -11,10 +11,11 @@ interface PageProps {
 
 export default async function StockDetailPage({ params }: PageProps) {
     const { symbol } = await params;
+    const decodedSymbol = decodeURIComponent(symbol);
     const [quote, performance, news] = await Promise.all([
-        getStockQuote(symbol),
-        getStockPerformance(symbol),
-        getStockNews(symbol)
+        getStockQuote(decodedSymbol),
+        getStockPerformance(decodedSymbol),
+        getStockNews(decodedSymbol)
     ]);
 
     return (
@@ -27,16 +28,16 @@ export default async function StockDetailPage({ params }: PageProps) {
 
                 <header>
                     <h1 className="text-4xl font-bold tracking-tight">
-                        {quote?.name || symbol} ({symbol})
+                        {quote?.name || decodedSymbol} ({decodedSymbol})
                     </h1>
                     <p className="text-muted-foreground">Real-time intraday values</p>
                 </header>
 
-                <StockDetailClient symbol={symbol} initialPerformance={performance} />
+                <StockDetailClient symbol={decodedSymbol} initialPerformance={performance} />
 
                 {quote && <StockFundamentals quote={quote} />}
 
-                <StockNews news={news} symbol={symbol} />
+                <StockNews news={news} symbol={decodedSymbol} />
             </div>
         </div>
     );

@@ -17,6 +17,8 @@ interface StockCardProps {
 export function StockCard({ stock }: StockCardProps) {
     const isPositive = stock.change >= 0;
 
+    const decimals = stock.symbol === 'EUR=X' ? 4 : 2;
+
     return (
         <Link href={`/stock/${stock.symbol}`} className="h-full block">
             <Card className="w-full h-full hover:bg-accent/50 transition-colors cursor-pointer flex flex-col justify-between">
@@ -31,9 +33,9 @@ export function StockCard({ stock }: StockCardProps) {
                     )}
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">${stock.price.toFixed(2)}</div>
+                    <div className="text-2xl font-bold">${stock.price.toFixed(decimals)}</div>
                     <p className={`text-xs ${isPositive ? "text-green-500" : "text-red-500"}`}>
-                        {isPositive ? "+" : ""}{stock.change.toFixed(2)} US$ ({stock.changePercent.toFixed(2)}%)
+                        {isPositive ? "+" : ""}{stock.change.toFixed(decimals)} US$ ({stock.changePercent.toFixed(2)}%)
                     </p>
                 </CardContent>
             </Card>
