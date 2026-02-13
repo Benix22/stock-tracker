@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowUpIcon, ArrowDownIcon } from "lucide-react"
 import Link from "next/link"
+import { useRef, useState, useEffect } from "react"
 
 interface StockData {
     symbol: string;
@@ -16,12 +17,28 @@ interface StockCardProps {
 
 export function StockCard({ stock }: StockCardProps) {
     const isPositive = stock.change >= 0;
-
     const decimals = stock.symbol === 'EUR=X' ? 4 : 2;
+
+    const [flashClass, setFlashClass] = useState<string>("");
+    const prevPriceRef = useRef<number>(stock.price);
+
+    useEffect(() => {
+        if (stock.price !== prevPriceRef.current) {
+            const isIncrease = stock.price > prevPriceRef.current;
+            setFlashClass(isIncrease ? "bg-green-500/20" : "bg-red-500/20");
+
+            const timer = setTimeout(() => {
+                setFlashClass("");
+            }, 300);
+
+            prevPriceRef.current = stock.price;
+            return () => clearTimeout(timer);
+        }
+    }, [stock.price]);
 
     return (
         <Link href={`/stock/${stock.symbol}`} className="h-full block">
-            <Card className="w-full h-full hover:bg-accent/50 transition-colors cursor-pointer flex flex-col justify-between">
+            <Card className={`w-full h-full hover:bg-accent/50 transition-colors cursor-pointer flex flex-col justify-between ${flashClass} duration-300`}>
                 <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium leading-tight">
                         {stock.name} ({stock.symbol})
