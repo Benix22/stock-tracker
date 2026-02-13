@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { StockData, HistoricalDataPoint } from "@/lib/stock-api";
 import { StockCard } from "@/components/StockCard";
 import { StockChart } from "@/components/StockChart";
-import { fetchStockData } from "@/actions/stock";
+import { fetchStockData, getBatchStockQuotes } from "@/actions/stock";
 import { SearchHistoryInput } from "@/components/SearchHistoryInput";
 import { getSearchHistory, addToSearchHistory } from "@/actions/history";
 
@@ -25,6 +25,27 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
     useEffect(() => {
         getSearchHistory().then(setHistory);
     }, []);
+
+    // Real-time updates
+    const symbolsString = stocks.map(s => s.symbol).join(',');
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            const currentSymbols = symbolsString.split(',').filter(Boolean);
+            if (currentSymbols.length === 0) return;
+
+            try {
+                const updatedQuotes = await getBatchStockQuotes(currentSymbols);
+                setStocks(prevStocks => prevStocks.map(s => {
+                    const newQuote = updatedQuotes.find(q => q.symbol === s.symbol);
+                    return newQuote ? { ...s, quote: newQuote } : s;
+                }));
+            } catch (error) {
+                console.error("Failed to update quotes", error);
+            }
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [symbolsString]);
 
     const handleSearch = async (symbol: string) => {
         if (!symbol.trim()) return;
