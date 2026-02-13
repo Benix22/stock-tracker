@@ -324,8 +324,8 @@ export function RealTimeChart({
                                 domain={[0, 'dataMax * 4']}
                             />
                             <Tooltip
-                                contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: 'var(--radius)' }}
-                                itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                contentStyle={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
+                                itemStyle={{ color: 'var(--foreground)' }}
                                 labelFormatter={(value) => {
                                     if (isCustom) return new Date(value).toLocaleDateString();
                                     return new Date(value).toLocaleString();
@@ -445,8 +445,8 @@ export function RealTimeChart({
                                 />
                                 <YAxis domain={[0, 100]} orientation="right" stroke="#888" tickLine={false} axisLine={false} ticks={[30, 70]} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: 'var(--radius)' }}
-                                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                                    contentStyle={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
+                                    itemStyle={{ color: 'var(--foreground)' }}
                                     labelFormatter={() => ''}
                                 />
                                 <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="3 3" />

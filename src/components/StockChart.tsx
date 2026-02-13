@@ -77,8 +77,8 @@ export function StockChart({ data, symbol, color = "#2563eb", domain }: StockCha
                         />
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <Tooltip
-                            contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: 'var(--radius)' }}
-                            itemStyle={{ color: 'hsl(var(--foreground))' }}
+                            contentStyle={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
+                            itemStyle={{ color: 'var(--foreground)' }}
                             formatter={(value: any) => [`$${Number(value).toFixed(decimals)}`, "Price"]}
                             labelFormatter={(value) => new Date(value).toLocaleDateString("en-US", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         />
