@@ -20,7 +20,10 @@ export default async function StockDetailPage({ params }: PageProps) {
     ]);
 
     if (quote) {
-        quote.recommendations = recommendations;
+        quote.recommendations = recommendations.recommendations;
+        quote.targetPrice = recommendations.targetPrice;
+        quote.targetHigh = recommendations.targetHigh;
+        quote.targetLow = recommendations.targetLow;
     }
 
     return (

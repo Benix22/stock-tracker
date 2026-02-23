@@ -25,6 +25,9 @@ export interface StockData {
     dividendYield?: number;
     eps?: number;
     recommendations?: StockRecommendation[];
+    targetPrice?: number;
+    targetHigh?: number;
+    targetLow?: number;
 }
 
 export interface HistoricalDataPoint {
@@ -295,19 +298,36 @@ export async function getMarketMovers(type: 'day_gainers' | 'day_losers' = 'day_
     }
 }
 
-export async function getStockRecommendations(symbol: string): Promise<StockRecommendation[]> {
+export interface RecommendationData {
+    recommendations: StockRecommendation[];
+    targetPrice?: number;
+    targetHigh?: number;
+    targetLow?: number;
+}
+
+export async function getStockRecommendations(symbol: string): Promise<RecommendationData> {
     try {
-        const result = await yahooFinance.quoteSummary(symbol, { modules: ['upgradeDowngradeHistory'] });
+        const result = await yahooFinance.quoteSummary(symbol, {
+            modules: ['upgradeDowngradeHistory', 'financialData']
+        });
+
         const history = result.upgradeDowngradeHistory?.history || [];
-        return history.map((rec: any) => ({
+        const recommendations = history.map((rec: any) => ({
             epochGradeDate: rec.epochGradeDate instanceof Date ? rec.epochGradeDate.toISOString() : rec.epochGradeDate,
             firm: rec.firm,
             toGrade: rec.toGrade,
             fromGrade: rec.fromGrade,
             action: rec.action,
         }));
+
+        return {
+            recommendations,
+            targetPrice: result.financialData?.targetMeanPrice,
+            targetHigh: result.financialData?.targetHighPrice,
+            targetLow: result.financialData?.targetLowPrice,
+        };
     } catch (error) {
         console.error(`Failed to fetch recommendations for ${symbol}:`, error);
-        return [];
+        return { recommendations: [] };
     }
 }
