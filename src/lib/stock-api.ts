@@ -4,6 +4,14 @@ const yahooFinance = new YahooFinance({
     logger: { info: () => { }, warn: () => { }, error: () => { }, debug: () => { }, dir: () => { } },
 });
 
+export interface StockRecommendation {
+    epochGradeDate: string;
+    firm: string;
+    toGrade: string;
+    fromGrade: string;
+    action: string;
+}
+
 export interface StockData {
     symbol: string;
     price: number;
@@ -16,6 +24,7 @@ export interface StockData {
     trailingPE?: number;
     dividendYield?: number;
     eps?: number;
+    recommendations?: StockRecommendation[];
 }
 
 export interface HistoricalDataPoint {
@@ -282,6 +291,23 @@ export async function getMarketMovers(type: 'day_gainers' | 'day_losers' = 'day_
         }));
     } catch (error) {
         console.error(`Failed to fetch market movers (${type}):`, error);
+        return [];
+    }
+}
+
+export async function getStockRecommendations(symbol: string): Promise<StockRecommendation[]> {
+    try {
+        const result = await yahooFinance.quoteSummary(symbol, { modules: ['upgradeDowngradeHistory'] });
+        const history = result.upgradeDowngradeHistory?.history || [];
+        return history.map((rec: any) => ({
+            epochGradeDate: rec.epochGradeDate instanceof Date ? rec.epochGradeDate.toISOString() : rec.epochGradeDate,
+            firm: rec.firm,
+            toGrade: rec.toGrade,
+            fromGrade: rec.fromGrade,
+            action: rec.action,
+        }));
+    } catch (error) {
+        console.error(`Failed to fetch recommendations for ${symbol}:`, error);
         return [];
     }
 }

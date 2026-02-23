@@ -1,5 +1,5 @@
 import { StockDetailClient } from "@/components/StockDetailClient";
-import { getStockQuote, getStockPerformance, getStockNews } from "@/lib/stock-api";
+import { getStockQuote, getStockPerformance, getStockNews, getStockRecommendations } from "@/lib/stock-api";
 import { StockNews } from "@/components/StockNews";
 import { StockFundamentals } from "@/components/StockFundamentals";
 import Link from "next/link";
@@ -12,11 +12,16 @@ interface PageProps {
 export default async function StockDetailPage({ params }: PageProps) {
     const { symbol } = await params;
     const decodedSymbol = decodeURIComponent(symbol);
-    const [quote, performance, news] = await Promise.all([
+    const [quote, performance, news, recommendations] = await Promise.all([
         getStockQuote(decodedSymbol),
         getStockPerformance(decodedSymbol),
-        getStockNews(decodedSymbol)
+        getStockNews(decodedSymbol),
+        getStockRecommendations(decodedSymbol)
     ]);
+
+    if (quote) {
+        quote.recommendations = recommendations;
+    }
 
     return (
         <div className="min-h-screen bg-background p-8">
