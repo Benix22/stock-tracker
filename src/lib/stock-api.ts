@@ -10,6 +10,7 @@ export interface StockRecommendation {
     toGrade: string;
     fromGrade: string;
     action: string;
+    targetPrice?: number;
 }
 
 export interface StockData {
@@ -28,6 +29,15 @@ export interface StockData {
     targetPrice?: number;
     targetHigh?: number;
     targetLow?: number;
+    targetMean?: number;
+    consensus?: {
+        strongBuy: number;
+        buy: number;
+        hold: number;
+        sell: number;
+        strongSell: number;
+        recommendationKey?: string;
+    };
 }
 
 export interface HistoricalDataPoint {
@@ -303,12 +313,21 @@ export interface RecommendationData {
     targetPrice?: number;
     targetHigh?: number;
     targetLow?: number;
+    targetMean?: number;
+    consensus?: {
+        strongBuy: number;
+        buy: number;
+        hold: number;
+        sell: number;
+        strongSell: number;
+        recommendationKey?: string;
+    }
 }
 
 export async function getStockRecommendations(symbol: string): Promise<RecommendationData> {
     try {
         const result = await yahooFinance.quoteSummary(symbol, {
-            modules: ['upgradeDowngradeHistory', 'financialData']
+            modules: ['upgradeDowngradeHistory', 'financialData', 'recommendationTrend']
         });
 
         const history = result.upgradeDowngradeHistory?.history || [];
@@ -318,13 +337,29 @@ export async function getStockRecommendations(symbol: string): Promise<Recommend
             toGrade: rec.toGrade,
             fromGrade: rec.fromGrade,
             action: rec.action,
+            targetPrice: rec.currentPriceTarget,
         }));
+
+        let consensus = undefined;
+        if (result.recommendationTrend?.trend && result.recommendationTrend.trend.length > 0) {
+            const currentTrend = result.recommendationTrend.trend[0];
+            consensus = {
+                strongBuy: currentTrend.strongBuy || 0,
+                buy: currentTrend.buy || 0,
+                hold: currentTrend.hold || 0,
+                sell: currentTrend.sell || 0,
+                strongSell: currentTrend.strongSell || 0,
+                recommendationKey: result.financialData?.recommendationKey,
+            };
+        }
 
         return {
             recommendations,
             targetPrice: result.financialData?.targetMeanPrice,
             targetHigh: result.financialData?.targetHighPrice,
             targetLow: result.financialData?.targetLowPrice,
+            targetMean: result.financialData?.targetMeanPrice,
+            consensus,
         };
     } catch (error) {
         console.error(`Failed to fetch recommendations for ${symbol}:`, error);
