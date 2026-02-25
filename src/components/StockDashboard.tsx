@@ -52,6 +52,14 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
         if (!symbol.trim()) return;
         const upperSymbol = symbol.toUpperCase().trim();
 
+        // Always update history (moves to top and ensures state is fresh)
+        try {
+            const newHistory = await addToSearchHistory(upperSymbol);
+            setHistory(newHistory);
+        } catch (err) {
+            console.error("Failed to update history", err);
+        }
+
         // If not in dashboard, fetch and add it
         if (!stocks.some(s => s.symbol === upperSymbol)) {
             setLoading(true);
@@ -63,9 +71,6 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
                     setError(`Could not find stock: ${upperSymbol}`);
                 } else {
                     setStocks(prev => [...prev, { symbol: upperSymbol, ...data }]);
-                    const newHistory = await addToSearchHistory(upperSymbol);
-                    setHistory(newHistory);
-                    setSearchInput(""); // Clear input on success
                 }
             } catch (err) {
                 setError("Failed to fetch stock data");
@@ -73,9 +78,9 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
             } finally {
                 setLoading(false);
             }
-        } else {
-            setSearchInput(""); // Clear input if already exists
         }
+
+        setSearchInput(""); // Clear input on success or existing selection
     };
 
     return (

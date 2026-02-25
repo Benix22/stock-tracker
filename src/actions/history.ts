@@ -16,8 +16,8 @@ export async function getSearchHistory(): Promise<string[]> {
 }
 
 export async function addToSearchHistory(symbol: string) {
+    const history = await getSearchHistory();
     try {
-        const history = await getSearchHistory();
         const upperSymbol = symbol.toUpperCase();
 
         // Remove if exists (to move to top/recent) and add to front
@@ -30,6 +30,7 @@ export async function addToSearchHistory(symbol: string) {
         return newHistory;
     } catch (error) {
         console.error("Failed to save history", error);
-        return [];
+        // Return existing history so we don't clear the UI
+        return history;
     }
 }
