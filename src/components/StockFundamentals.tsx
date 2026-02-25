@@ -77,7 +77,7 @@ export function StockFundamentals({ quote }: StockFundamentalsProps) {
                             <h3 className="text-lg font-semibold">Analyst Recommendations</h3>
                             {quote.targetPrice && (
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-sm text-muted-foreground font-medium">Precio Objetivo:</span>
+                                    <span className="text-sm text-muted-foreground font-medium">Target Price:</span>
                                     <span className="text-xl font-bold text-primary">{formatCurrency(quote.targetPrice)}</span>
                                     {(quote.targetLow || quote.targetHigh) && (
                                         <span className="text-xs text-muted-foreground">
