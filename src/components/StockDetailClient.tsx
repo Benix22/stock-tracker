@@ -40,6 +40,7 @@ export function StockDetailClient({ symbol, initialPerformance }: StockDetailCli
     const [comparedSymbol, setComparedSymbol] = useState<string | null>(null);
     const [comparisonData, setComparisonData] = useState<HistoricalDataPoint[] | null>(null);
     const [currentRange, setCurrentRange] = useState<{ start: string | null, end: string | null }>({ start: null, end: null });
+    const [activeRangeBadge, setActiveRangeBadge] = useState<string>("1D");
 
     const handleDataUpdate = (price: number) => {
         setLatestPrice(price);
@@ -47,6 +48,12 @@ export function StockDetailClient({ symbol, initialPerformance }: StockDetailCli
 
     const handleDateRangeUpdate = async (start: string | null, end: string | null) => {
         setCurrentRange({ start, end });
+        if (!start || !end) {
+            setActiveRangeBadge("1D");
+        } else {
+            setActiveRangeBadge("Custom");
+        }
+
         if (start && end) {
             try {
                 // Fetch data for main symbol
@@ -110,6 +117,45 @@ export function StockDetailClient({ symbol, initialPerformance }: StockDetailCli
         setComparedSymbol(null);
         setComparisonData(null);
         // If we were in forced-history mode, maybe leave it as is?
+    };
+
+    const handleQuickRange = (range: string) => {
+        setActiveRangeBadge(range);
+        if (range === '1D') {
+            setCurrentRange({ start: null, end: null });
+            setHistoricalData(null);
+            setComparisonData(null);
+            setComparedSymbol(null); // Clear comparison for 1D for simplicity
+            return;
+        }
+
+        const today = new Date();
+        const end = today.toISOString().split('T')[0];
+        const startD = new Date();
+
+        switch (range) {
+            case '5D': startD.setDate(startD.getDate() - 5); break;
+            case '1M': startD.setMonth(startD.getMonth() - 1); break;
+            case '5M': startD.setMonth(startD.getMonth() - 5); break;
+            case 'MAX': startD.setFullYear(startD.getFullYear() - 50); break; // roughly 50 years max
+        }
+
+        const start = startD.toISOString().split('T')[0];
+
+        // Use an IIFE or handle locally to perform fetch
+        const fetchRange = async () => {
+            setCurrentRange({ start, end });
+            try {
+                const mainDataPromise = getStockHistoryWithRange(symbol, start, end);
+                const compDataPromise = comparedSymbol ? getStockHistoryWithRange(comparedSymbol, start, end) : Promise.resolve(null);
+                const [mainData, compData] = await Promise.all([mainDataPromise, compDataPromise]);
+                setHistoricalData(mainData);
+                if (compData) setComparisonData(compData);
+            } catch (error) {
+                console.error("Failed to fetch quick range data", error);
+            }
+        };
+        fetchRange();
     };
 
     return (
@@ -189,8 +235,22 @@ export function StockDetailClient({ symbol, initialPerformance }: StockDetailCli
                             </div>
                         </PopoverContent>
                     </Popover>
-                    <DateRangePicker onUpdate={handleDateRangeUpdate} />
+                    <DateRangePicker onUpdate={(s, e) => handleDateRangeUpdate(s, e)} />
                 </div>
+            </div>
+
+            <div className="flex gap-2 mb-2 w-full pt-2">
+                {['1D', '5D', '1M', '5M', 'MAX'].map(r => (
+                    <Button
+                        key={r}
+                        variant={activeRangeBadge === r ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleQuickRange(r)}
+                        className={`text-xs h-7 px-3 ${activeRangeBadge === r ? '' : 'text-muted-foreground'}`}
+                    >
+                        {r}
+                    </Button>
+                ))}
             </div>
 
             <RealTimeChart

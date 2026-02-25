@@ -24,6 +24,8 @@ export default async function StockDetailPage({ params }: PageProps) {
         quote.targetPrice = recommendations.targetPrice;
         quote.targetHigh = recommendations.targetHigh;
         quote.targetLow = recommendations.targetLow;
+        quote.targetMean = recommendations.targetMean;
+        quote.consensus = recommendations.consensus;
     }
 
     return (
