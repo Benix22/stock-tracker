@@ -21,6 +21,7 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
     const [history, setHistory] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [searchValue, setSearchValue] = useState("");
 
     useEffect(() => {
         getSearchHistory().then(setHistory);
@@ -51,31 +52,39 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
         if (!symbol.trim()) return;
         const upperSymbol = symbol.toUpperCase().trim();
 
-        // Check if already exists
-        if (stocks.some(s => s.symbol === upperSymbol)) {
-            setError("Stock already in dashboard");
-            return;
-        }
+        // If it's already in the list, we just filter to it (handled by searchValue)
+        // If not, we fetch and add it
+        if (!stocks.some(s => s.symbol === upperSymbol)) {
+            setLoading(true);
+            setError(null);
 
-        setLoading(true);
-        setError(null);
-
-        try {
-            const data = await fetchStockData(upperSymbol);
-            if (!data.quote) {
-                setError(`Could not find stock: ${upperSymbol}`);
-            } else {
-                setStocks(prev => [...prev, { symbol: upperSymbol, ...data }]);
-                const newHistory = await addToSearchHistory(upperSymbol);
-                setHistory(newHistory);
+            try {
+                const data = await fetchStockData(upperSymbol);
+                if (!data.quote) {
+                    setError(`Could not find stock: ${upperSymbol}`);
+                } else {
+                    setStocks(prev => [...prev, { symbol: upperSymbol, ...data }]);
+                    const newHistory = await addToSearchHistory(upperSymbol);
+                    setHistory(newHistory);
+                }
+            } catch (err) {
+                setError("Failed to fetch stock data");
+                console.error(err);
+            } finally {
+                setLoading(false);
             }
-        } catch (err) {
-            setError("Failed to fetch stock data");
-            console.error(err);
-        } finally {
-            setLoading(false);
         }
+
+        // Always reset search value after adding/selecting to show everything or just the new one
+        // Wait, if we want it to filter while typing, we keep it. 
+        // But on Enter, maybe we want to see only that one.
+        setSearchValue(upperSymbol);
     };
+
+    const filteredStocks = stocks.filter(stock =>
+        stock.symbol.toLowerCase().includes(searchValue.toLowerCase()) ||
+        stock.quote?.name.toLowerCase().includes(searchValue.toLowerCase())
+    );
 
     return (
         <div className="space-y-8">
@@ -90,6 +99,8 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
                         onSearch={handleSearch}
                         loading={loading}
                         history={history}
+                        searchValue={searchValue}
+                        onSearchValueChange={setSearchValue}
                     />
                 </div>
             </header>
@@ -101,15 +112,21 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
             )}
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {stocks.map(({ symbol, quote }) => (
-                    quote ? (
-                        <StockCard key={symbol} stock={quote} />
-                    ) : (
-                        <div key={symbol} className="p-4 border rounded shadow bg-card text-card-foreground">
-                            Failed to load {symbol}
-                        </div>
-                    )
-                ))}
+                {filteredStocks.length > 0 ? (
+                    filteredStocks.map(({ symbol, quote }) => (
+                        quote ? (
+                            <StockCard key={symbol} stock={quote} />
+                        ) : (
+                            <div key={symbol} className="p-4 border rounded shadow bg-card text-card-foreground">
+                                Failed to load {symbol}
+                            </div>
+                        )
+                    ))
+                ) : (
+                    <div className="col-span-full py-12 text-center border rounded-lg border-dashed">
+                        <p className="text-muted-foreground">No stocks match your search.</p>
+                    </div>
+                )}
             </div>
 
             <div className="space-y-4">

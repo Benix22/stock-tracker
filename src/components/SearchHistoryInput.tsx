@@ -24,29 +24,32 @@ interface SearchHistoryInputProps {
     history: string[];
     onSearch: (symbol: string) => void;
     loading?: boolean;
+    searchValue: string;
+    onSearchValueChange: (value: string) => void;
 }
 
-export function SearchHistoryInput({ history, onSearch, loading }: SearchHistoryInputProps) {
+export function SearchHistoryInput({
+    history,
+    onSearch,
+    loading,
+    searchValue,
+    onSearchValueChange
+}: SearchHistoryInputProps) {
     const [open, setOpen] = React.useState(false)
-    const [value, setValue] = React.useState("")
 
     const handleSelect = (currentValue: string) => {
-        setValue(currentValue)
+        onSearchValueChange(currentValue)
         setOpen(false)
         onSearch(currentValue)
     }
 
     const handleSubmit = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && value) {
+        if (e.key === 'Enter' && searchValue) {
             e.preventDefault();
             setOpen(false);
-            onSearch(value);
+            onSearch(searchValue);
         }
     }
-
-    // To make the input feel like a standard input but with history, 
-    // we can use the Popover with a CommandInput inside.
-    // Or we can simple use the Command as a combobox.
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -57,9 +60,9 @@ export function SearchHistoryInput({ history, onSearch, loading }: SearchHistory
                         <input
                             className="flex h-5 w-full bg-transparent p-0 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
                             placeholder="Search stock..."
-                            value={value}
+                            value={searchValue}
                             onChange={(e) => {
-                                setValue(e.target.value.toUpperCase());
+                                onSearchValueChange(e.target.value.toUpperCase());
                                 setOpen(true);
                             }}
                             onFocus={() => setOpen(true)}
@@ -75,15 +78,10 @@ export function SearchHistoryInput({ history, onSearch, loading }: SearchHistory
                 onOpenAutoFocus={(e) => e.preventDefault()}
             >
                 <Command>
-                    {/* We don't use CommandInput here because we have the input in the Trigger. 
-              However, pure shadcn combobox usually puts CommandInput inside.
-              Let's accept that for history, we want to filter simply against the history list. 
-           */}
-
                     <CommandList>
                         <CommandEmpty>No history found.</CommandEmpty>
                         <CommandGroup heading="History">
-                            {history.map((symbol) => (
+                            {history.filter(h => h.includes(searchValue) || searchValue === "").map((symbol) => (
                                 <CommandItem
                                     key={symbol}
                                     value={symbol}
