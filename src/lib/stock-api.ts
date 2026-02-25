@@ -1,4 +1,10 @@
 import YahooFinance from 'yahoo-finance2';
+import fs from 'fs';
+import path from 'path';
+import { promisify } from 'util';
+import { pipeline } from 'stream';
+
+const streamPipeline = promisify(pipeline);
 
 const yahooFinance = new YahooFinance({
     logger: { info: () => { }, warn: () => { }, error: () => { }, debug: () => { }, dir: () => { } },
@@ -38,6 +44,7 @@ export interface StockData {
         strongSell: number;
         recommendationKey?: string;
     };
+    logoUrl?: string;
 }
 
 export interface HistoricalDataPoint {
@@ -77,6 +84,7 @@ export async function getStockQuote(symbol: string): Promise<StockData | null> {
             trailingPE: quote.trailingPE,
             dividendYield: quote.dividendYield,
             eps: quote.epsTrailingTwelveMonths,
+            logoUrl: await getStockLogo(symbol),
         };
     } catch (error) {
         console.error(`Failed to fetch quote for ${symbol}:`, error);
@@ -436,4 +444,62 @@ export async function getStockProfile(symbol: string): Promise<StockProfile | nu
         console.error(`Failed to fetch profile for ${symbol}:`, error);
         return null;
     }
+}
+
+const API_NINJAS_KEY = 'RsIIb36UUWDJcfx9ZeO0vTjxduMJcwCOXnxTbiLh';
+
+export async function getStockLogo(symbol: string): Promise<string | undefined> {
+    const cleanSymbol = symbol.split('.')[0].split('-')[0].split('=')[0].toUpperCase();
+    const logoDir = path.join(process.cwd(), 'public', 'logos');
+    const logoPath = path.join(logoDir, `${cleanSymbol}.png`);
+    const noLogoPath = path.join(logoDir, `${cleanSymbol}.no-logo`);
+    const publicUrl = `/logos/${cleanSymbol}.png`;
+
+    // Ensure directory exists
+    if (!fs.existsSync(logoDir)) {
+        fs.mkdirSync(logoDir, { recursive: true });
+    }
+
+    // 1. Check if cached (either found or confirmed not found)
+    if (fs.existsSync(logoPath)) {
+        return publicUrl;
+    }
+    if (fs.existsSync(noLogoPath)) {
+        return undefined;
+    }
+
+    // 2. Not cached, try fetching from API Ninjas
+    try {
+        console.log(`Fetching logo for ${cleanSymbol} from API Ninjas...`);
+        const response = await fetch(`https://api.api-ninjas.com/v1/logo?ticker=${cleanSymbol}`, {
+            headers: { 'X-Api-Key': API_NINJAS_KEY }
+        });
+
+        if (!response.ok) throw new Error(`API Ninjas error: ${response.statusText}`);
+
+        const data = await response.json();
+
+        if (Array.isArray(data) && data.length > 0 && data[0].image) {
+            const imageUrl = data[0].image;
+
+            // Download and save
+            const imageResponse = await fetch(imageUrl);
+            if (!imageResponse.ok) throw new Error(`Failed to download logo image: ${imageResponse.statusText}`);
+
+            const buffer = Buffer.from(await imageResponse.arrayBuffer());
+            fs.writeFileSync(logoPath, buffer);
+
+            console.log(`Saved logo for ${cleanSymbol} to ${logoPath}`);
+            return publicUrl;
+        } else {
+            // Mark as not found to avoid future API calls
+            fs.writeFileSync(noLogoPath, '');
+            console.log(`No logo found for ${cleanSymbol}, marked in cache to avoid redundant calls.`);
+        }
+    } catch (error) {
+        console.error(`Failed to fetch or save logo for ${cleanSymbol}:`, error);
+        // We don't mark as .no-logo here in case it was a temporary network error
+    }
+
+    return undefined;
 }

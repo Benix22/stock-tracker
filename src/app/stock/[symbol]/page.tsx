@@ -37,11 +37,22 @@ export default async function StockDetailPage({ params }: PageProps) {
                     Back to Dashboard
                 </Link>
 
-                <header>
-                    <h1 className="text-4xl font-bold tracking-tight">
-                        {quote?.name || decodedSymbol} ({decodedSymbol})
-                    </h1>
-                    <p className="text-muted-foreground">Real-time intraday values</p>
+                <header className="flex items-center gap-4">
+                    {quote?.logoUrl && (
+                        <div className="shrink-0 w-16 h-16 rounded-full bg-white flex items-center justify-center overflow-hidden border border-border p-2 shadow-sm">
+                            <img
+                                src={quote.logoUrl}
+                                alt=""
+                                className="w-full h-full object-contain"
+                            />
+                        </div>
+                    )}
+                    <div>
+                        <h1 className="text-4xl font-bold tracking-tight">
+                            {quote?.name || decodedSymbol} ({decodedSymbol})
+                        </h1>
+                        <p className="text-muted-foreground">Real-time intraday values</p>
+                    </div>
                 </header>
 
                 <StockDetailClient

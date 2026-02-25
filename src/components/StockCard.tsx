@@ -9,6 +9,7 @@ interface StockData {
     change: number;
     changePercent: number;
     name: string;
+    logoUrl?: string;
 }
 
 interface StockCardProps {
@@ -39,14 +40,23 @@ export function StockCard({ stock }: StockCardProps) {
     return (
         <Link href={`/stock/${stock.symbol}`} className="h-full block">
             <Card className={`w-full h-full hover:bg-accent/50 transition-colors cursor-pointer flex flex-col justify-between ${flashClass} duration-1000`}>
-                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium leading-tight">
-                        {stock.name} ({stock.symbol})
-                    </CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
+                    <div className="flex items-center gap-2 overflow-hidden flex-1">
+                        <div className="shrink-0 w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden border border-border p-1">
+                            <img
+                                src={stock.logoUrl || `https://ui-avatars.com/api/?name=${stock.symbol}&background=random&color=fff`}
+                                alt=""
+                                className="w-full h-full object-contain"
+                            />
+                        </div>
+                        <CardTitle className="text-sm font-medium leading-tight truncate">
+                            {stock.name} ({stock.symbol})
+                        </CardTitle>
+                    </div>
                     {isPositive ? (
-                        <ArrowUpIcon className="h-4 w-4 text-green-500" />
+                        <ArrowUpIcon className="h-4 w-4 shrink-0 text-green-500" />
                     ) : (
-                        <ArrowDownIcon className="h-4 w-4 text-red-500" />
+                        <ArrowDownIcon className="h-4 w-4 shrink-0 text-red-500" />
                     )}
                 </CardHeader>
                 <CardContent>
