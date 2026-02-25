@@ -77,20 +77,34 @@ export function SearchHistoryInput({
                 align="start"
                 onOpenAutoFocus={(e) => e.preventDefault()}
             >
-                <Command>
+                <Command className="border rounded-md shadow-md">
                     <CommandList>
-                        <CommandEmpty>No history found.</CommandEmpty>
-                        <CommandGroup heading="History">
-                            {history.filter(h => h.includes(searchValue) || searchValue === "").map((symbol) => (
-                                <CommandItem
-                                    key={symbol}
-                                    value={symbol}
-                                    onSelect={handleSelect}
-                                >
-                                    <Clock className="mr-2 h-4 w-4 opacity-70" />
-                                    {symbol}
-                                </CommandItem>
-                            ))}
+                        <CommandGroup heading="Recent Searches">
+                            {history.length > 0 ? (
+                                history
+                                    .filter(h => h.includes(searchValue) || !searchValue)
+                                    .map((symbol) => (
+                                        <CommandItem
+                                            key={symbol}
+                                            value={symbol}
+                                            onSelect={handleSelect}
+                                            className="cursor-pointer"
+                                        >
+                                            <Clock className="mr-2 h-4 w-4 opacity-70" />
+                                            <span>{symbol}</span>
+                                        </CommandItem>
+                                    ))
+                            ) : null}
+                            {history.length > 0 && history.filter(h => h.includes(searchValue) || !searchValue).length === 0 && (
+                                <div className="py-6 text-center text-sm text-muted-foreground">
+                                    No results found.
+                                </div>
+                            )}
+                            {history.length === 0 && (
+                                <div className="py-6 text-center text-sm text-muted-foreground">
+                                    No history yet.
+                                </div>
+                            )}
                         </CommandGroup>
                     </CommandList>
                 </Command>
