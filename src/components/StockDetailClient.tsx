@@ -137,6 +137,12 @@ export function StockDetailClient({ symbol, initialPerformance }: StockDetailCli
             case '5D': startD.setDate(startD.getDate() - 5); break;
             case '1M': startD.setMonth(startD.getMonth() - 1); break;
             case '5M': startD.setMonth(startD.getMonth() - 5); break;
+            case 'YTD':
+                startD.setMonth(0);
+                startD.setDate(1);
+                break;
+            case '1Y': startD.setFullYear(startD.getFullYear() - 1); break;
+            case '5Y': startD.setFullYear(startD.getFullYear() - 5); break;
             case 'MAX': startD.setFullYear(startD.getFullYear() - 50); break; // roughly 50 years max
         }
 
@@ -240,7 +246,7 @@ export function StockDetailClient({ symbol, initialPerformance }: StockDetailCli
             </div>
 
             <div className="flex gap-2 mb-2 w-full pt-2">
-                {['1D', '5D', '1M', '5M', 'MAX'].map(r => (
+                {['1D', '5D', '1M', '5M', 'YTD', '1Y', '5Y', 'MAX'].map(r => (
                     <Button
                         key={r}
                         variant={activeRangeBadge === r ? "default" : "outline"}
