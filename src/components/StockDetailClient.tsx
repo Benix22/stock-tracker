@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { RealTimeChart } from "@/components/RealTimeChart";
 import { StockPerformanceTable } from "@/components/StockPerformance";
 import { getIntradayData, getStockHistoryWithRange } from "@/actions/stock";
-import { IntradayResult, StockPerformance, HistoricalDataPoint } from "@/lib/stock-api";
+import { IntradayResult, StockPerformance, HistoricalDataPoint, StockProfile as StockProfileType } from "@/lib/stock-api";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useWatchlist } from "@/hooks/use-watchlist";
+import { StockProfile } from "@/components/StockProfile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Star, Settings2, X, Plus } from "lucide-react";
@@ -21,9 +22,10 @@ import {
 interface StockDetailClientProps {
     symbol: string;
     initialPerformance: StockPerformance | null;
+    profile: StockProfileType | null;
 }
 
-export function StockDetailClient({ symbol, initialPerformance }: StockDetailClientProps) {
+export function StockDetailClient({ symbol, initialPerformance, profile }: StockDetailClientProps) {
     const { isWatched, addToWatchlist, removeFromWatchlist } = useWatchlist();
     const [latestPrice, setLatestPrice] = useState<number | null>(
         initialPerformance?.currentPrice || null
@@ -259,18 +261,27 @@ export function StockDetailClient({ symbol, initialPerformance }: StockDetailCli
                 ))}
             </div>
 
-            <RealTimeChart
-                symbol={symbol}
-                onPriceUpdate={handleDataUpdate}
-                customData={historicalData}
-                showSMA5={showSMA5}
-                showSMA10={showSMA10}
-                showSMA20={showSMA20}
-                showRSI={showRSI}
-                showBollinger={showBollinger}
-                comparisonSymbol={comparedSymbol || undefined}
-                comparisonData={comparisonData || undefined}
-            />
+            <div className="flex flex-col xl:flex-row gap-6 items-stretch min-h-[500px]">
+                <div className="flex-1 min-w-0 flex">
+                    <RealTimeChart
+                        symbol={symbol}
+                        onPriceUpdate={handleDataUpdate}
+                        customData={historicalData}
+                        showSMA5={showSMA5}
+                        showSMA10={showSMA10}
+                        showSMA20={showSMA20}
+                        showRSI={showRSI}
+                        showBollinger={showBollinger}
+                        comparisonSymbol={comparedSymbol || undefined}
+                        comparisonData={comparisonData || undefined}
+                    />
+                </div>
+                {profile && (
+                    <div className="w-full xl:w-80 2xl:w-96 shrink-0 flex">
+                        <StockProfile profile={profile} />
+                    </div>
+                )}
+            </div>
             {initialPerformance && (
                 <StockPerformanceTable
                     performance={initialPerformance}

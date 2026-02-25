@@ -261,7 +261,7 @@ export function RealTimeChart({
     }
 
     return (
-        <Card className="w-full">
+        <Card className="w-full h-full flex flex-col shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
                 <div className="space-y-1 w-full">
                     <CardTitle className="flex justify-between items-center">
@@ -299,178 +299,180 @@ export function RealTimeChart({
                     )}
                 </div>
             </CardHeader>
-            <CardContent className="pl-0">
-                <div className="h-[400px] w-full flex flex-col">
-                    <ResponsiveContainer width="100%" height={showRSI ? "75%" : "100%"}>
-                        <ComposedChart data={chartData} syncId="stockChart">
-                            <defs>
-                                <linearGradient id={strokeGradientId} x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="0%" stopColor="#9ca3af" />
-                                    <stop offset={`${Math.max(0, gapPercentage - 1)}%`} stopColor="#9ca3af" />
-                                    <stop offset={`${gapPercentage}%`} stopColor={color} />
-                                    <stop offset="100%" stopColor={color} />
-                                </linearGradient>
-                                <linearGradient id={fillGradientId} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={color} stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor={color} stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <XAxis
-                                dataKey="date"
-                                hide={!isCustom || showRSI}
-                                tickFormatter={(val) => {
-                                    if (isCustom) return new Date(val).toLocaleDateString();
-                                    return val;
-                                }}
-                                minTickGap={30}
-                            />
-                            <YAxis
-                                yAxisId="price"
-                                domain={[domainMin, domainMax]}
-                                tickFormatter={(val) => isComparisonMode ? `${val.toFixed(2)}%` : val.toFixed(decimals)}
-                                orientation="right"
-                                stroke="#888"
-                                tickLine={false}
-                                axisLine={false}
-                            />
-                            <YAxis
-                                yAxisId="volume"
-                                orientation="left"
-                                hide
-                                domain={[0, 'dataMax * 4']}
-                            />
-                            <Tooltip
-                                contentStyle={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
-                                itemStyle={{ color: 'var(--foreground)' }}
-                                labelFormatter={(value) => {
-                                    if (isCustom) return new Date(value).toLocaleDateString();
-                                    return new Date(value).toLocaleString();
-                                }}
-                                formatter={(value: any, name: any, payload: any) => {
-                                    // payload is complex, but rechart passes payload inside item usually
-                                    // But here 'value' is the raw value passed to the line
-                                    if (name === "Volume") return [value.toLocaleString(), name];
-                                    if (name === "RSI") return [Number(value).toFixed(2), name];
-                                    if (name.includes("BB")) return [Number(value).toFixed(2), name];
-                                    if (name.includes("SMA")) return [Number(value).toFixed(2), name];
-
-                                    // For Price lines:
-                                    if (name === "Price" || name === symbol) {
-                                        if (isComparisonMode) return [`${Number(value).toFixed(2)}%`, name];
-                                        return [`$${Number(value).toFixed(decimals)}`, name];
-                                    }
-                                    if (name === comparisonSymbol) {
-                                        return [`${Number(value).toFixed(2)}%`, name];
-                                    }
-
-                                    return [Number(value).toFixed(2), name];
-                                }}
-                            />
-                            {!isComparisonMode && (
-                                <Bar
-                                    dataKey="volume"
-                                    yAxisId="volume"
-                                    fill="#94a3b8"
-                                    opacity={0.8}
-                                    barSize={isCustom ? 8 : 2}
-                                    name="Volume"
-                                />
-                            )}
-                            <Area
-                                type="monotone"
-                                dataKey="value" // Use derived value (normalized or price)
-                                yAxisId="price"
-                                stroke={`url(#${strokeGradientId})`}
-                                strokeWidth={2}
-                                fillOpacity={isComparisonMode ? 0 : 1} // Transparent fill in comparison mode for clarity
-                                fill={`url(#${fillGradientId})`}
-                                isAnimationActive={false}
-                                name={symbol} // Use symbol name
-                            />
-                            {isComparisonMode && (
-                                <Line
-                                    type="monotone"
-                                    dataKey="compValue"
-                                    yAxisId="price"
-                                    stroke="#d946ef" // Fuchsia-500
-                                    strokeWidth={2}
-                                    dot={false}
-                                    name={comparisonSymbol}
-                                    isAnimationActive={false}
-                                />
-                            )}
-                            {showSMA5 && (
-                                <Area
-                                    type="monotone"
-                                    dataKey="sma5"
-                                    yAxisId="price"
-                                    stroke="#f97316"
-                                    strokeWidth={2}
-                                    fillOpacity={0}
-                                    isAnimationActive={false}
-                                    dot={false}
-                                    name="SMA 5"
-                                />
-                            )}
-                            {showSMA10 && (
-                                <Area
-                                    type="monotone"
-                                    dataKey="sma10"
-                                    yAxisId="price"
-                                    stroke="#a855f7"
-                                    strokeWidth={2}
-                                    fillOpacity={0}
-                                    isAnimationActive={false}
-                                    dot={false}
-                                    name="SMA 10"
-                                />
-                            )}
-                            {showSMA20 && (
-                                <Area
-                                    type="monotone"
-                                    dataKey="sma20"
-                                    yAxisId="price"
-                                    stroke="#eab308"
-                                    strokeWidth={2}
-                                    fillOpacity={0}
-                                    isAnimationActive={false}
-                                    dot={false}
-                                    name="SMA 20"
-                                />
-                            )}
-                            {showBollinger && (
-                                <>
-                                    <Line type="monotone" dataKey="bbUpper" yAxisId="price" stroke="#4b5563" dot={false} strokeWidth={2} name="BB Upper" />
-                                    <Line type="monotone" dataKey="bbLower" yAxisId="price" stroke="#4b5563" dot={false} strokeWidth={2} name="BB Lower" />
-                                </>
-                            )}
-                        </ComposedChart>
-                    </ResponsiveContainer>
-
-                    {showRSI && (
-                        <ResponsiveContainer width="100%" height="25%">
+            <CardContent className="pl-0 flex-1 flex flex-col min-h-0">
+                <div className="flex-1 w-full flex flex-col min-h-0 px-2">
+                    <div className="flex-1 min-h-[400px]">
+                        <ResponsiveContainer width="100%" height={showRSI ? "75%" : "100%"}>
                             <ComposedChart data={chartData} syncId="stockChart">
+                                <defs>
+                                    <linearGradient id={strokeGradientId} x1="0" y1="0" x2="1" y2="0">
+                                        <stop offset="0%" stopColor="#9ca3af" />
+                                        <stop offset={`${Math.max(0, gapPercentage - 1)}%`} stopColor="#9ca3af" />
+                                        <stop offset={`${gapPercentage}%`} stopColor={color} />
+                                        <stop offset="100%" stopColor={color} />
+                                    </linearGradient>
+                                    <linearGradient id={fillGradientId} x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor={color} stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor={color} stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
                                 <XAxis
                                     dataKey="date"
-                                    hide={!isCustom}
+                                    hide={!isCustom || showRSI}
                                     tickFormatter={(val) => {
                                         if (isCustom) return new Date(val).toLocaleDateString();
                                         return val;
                                     }}
                                     minTickGap={30}
                                 />
-                                <YAxis domain={[0, 100]} orientation="right" stroke="#888" tickLine={false} axisLine={false} ticks={[30, 70]} />
+                                <YAxis
+                                    yAxisId="price"
+                                    domain={[domainMin, domainMax]}
+                                    tickFormatter={(val) => isComparisonMode ? `${val.toFixed(2)}%` : val.toFixed(decimals)}
+                                    orientation="right"
+                                    stroke="#888"
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+                                <YAxis
+                                    yAxisId="volume"
+                                    orientation="left"
+                                    hide
+                                    domain={[0, 'dataMax * 4']}
+                                />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
                                     itemStyle={{ color: 'var(--foreground)' }}
-                                    labelFormatter={() => ''}
+                                    labelFormatter={(value) => {
+                                        if (isCustom) return new Date(value).toLocaleDateString();
+                                        return new Date(value).toLocaleString();
+                                    }}
+                                    formatter={(value: any, name: any, payload: any) => {
+                                        // payload is complex, but rechart passes payload inside item usually
+                                        // But here 'value' is the raw value passed to the line
+                                        if (name === "Volume") return [value.toLocaleString(), name];
+                                        if (name === "RSI") return [Number(value).toFixed(2), name];
+                                        if (name.includes("BB")) return [Number(value).toFixed(2), name];
+                                        if (name.includes("SMA")) return [Number(value).toFixed(2), name];
+
+                                        // For Price lines:
+                                        if (name === "Price" || name === symbol) {
+                                            if (isComparisonMode) return [`${Number(value).toFixed(2)}%`, name];
+                                            return [`$${Number(value).toFixed(decimals)}`, name];
+                                        }
+                                        if (name === comparisonSymbol) {
+                                            return [`${Number(value).toFixed(2)}%`, name];
+                                        }
+
+                                        return [Number(value).toFixed(2), name];
+                                    }}
                                 />
-                                <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="3 3" />
-                                <ReferenceLine y={30} stroke="#22c55e" strokeDasharray="3 3" />
-                                <Line type="monotone" dataKey="rsi" stroke="#8b5cf6" strokeWidth={2} dot={false} name="RSI" />
+                                {!isComparisonMode && (
+                                    <Bar
+                                        dataKey="volume"
+                                        yAxisId="volume"
+                                        fill="#94a3b8"
+                                        opacity={0.8}
+                                        barSize={isCustom ? 8 : 2}
+                                        name="Volume"
+                                    />
+                                )}
+                                <Area
+                                    type="monotone"
+                                    dataKey="value" // Use derived value (normalized or price)
+                                    yAxisId="price"
+                                    stroke={`url(#${strokeGradientId})`}
+                                    strokeWidth={2}
+                                    fillOpacity={isComparisonMode ? 0 : 1} // Transparent fill in comparison mode for clarity
+                                    fill={`url(#${fillGradientId})`}
+                                    isAnimationActive={false}
+                                    name={symbol} // Use symbol name
+                                />
+                                {isComparisonMode && (
+                                    <Line
+                                        type="monotone"
+                                        dataKey="compValue"
+                                        yAxisId="price"
+                                        stroke="#d946ef" // Fuchsia-500
+                                        strokeWidth={2}
+                                        dot={false}
+                                        name={comparisonSymbol}
+                                        isAnimationActive={false}
+                                    />
+                                )}
+                                {showSMA5 && (
+                                    <Area
+                                        type="monotone"
+                                        dataKey="sma5"
+                                        yAxisId="price"
+                                        stroke="#f97316"
+                                        strokeWidth={2}
+                                        fillOpacity={0}
+                                        isAnimationActive={false}
+                                        dot={false}
+                                        name="SMA 5"
+                                    />
+                                )}
+                                {showSMA10 && (
+                                    <Area
+                                        type="monotone"
+                                        dataKey="sma10"
+                                        yAxisId="price"
+                                        stroke="#a855f7"
+                                        strokeWidth={2}
+                                        fillOpacity={0}
+                                        isAnimationActive={false}
+                                        dot={false}
+                                        name="SMA 10"
+                                    />
+                                )}
+                                {showSMA20 && (
+                                    <Area
+                                        type="monotone"
+                                        dataKey="sma20"
+                                        yAxisId="price"
+                                        stroke="#eab308"
+                                        strokeWidth={2}
+                                        fillOpacity={0}
+                                        isAnimationActive={false}
+                                        dot={false}
+                                        name="SMA 20"
+                                    />
+                                )}
+                                {showBollinger && (
+                                    <>
+                                        <Line type="monotone" dataKey="bbUpper" yAxisId="price" stroke="#4b5563" dot={false} strokeWidth={2} name="BB Upper" />
+                                        <Line type="monotone" dataKey="bbLower" yAxisId="price" stroke="#4b5563" dot={false} strokeWidth={2} name="BB Lower" />
+                                    </>
+                                )}
                             </ComposedChart>
                         </ResponsiveContainer>
-                    )}
+
+                        {showRSI && (
+                            <ResponsiveContainer width="100%" height="25%">
+                                <ComposedChart data={chartData} syncId="stockChart">
+                                    <XAxis
+                                        dataKey="date"
+                                        hide={!isCustom}
+                                        tickFormatter={(val) => {
+                                            if (isCustom) return new Date(val).toLocaleDateString();
+                                            return val;
+                                        }}
+                                        minTickGap={30}
+                                    />
+                                    <YAxis domain={[0, 100]} orientation="right" stroke="#888" tickLine={false} axisLine={false} ticks={[30, 70]} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
+                                        itemStyle={{ color: 'var(--foreground)' }}
+                                        labelFormatter={() => ''}
+                                    />
+                                    <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="3 3" />
+                                    <ReferenceLine y={30} stroke="#22c55e" strokeDasharray="3 3" />
+                                    <Line type="monotone" dataKey="rsi" stroke="#8b5cf6" strokeWidth={2} dot={false} name="RSI" />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        )}
+                    </div>
                 </div>
             </CardContent>
         </Card>

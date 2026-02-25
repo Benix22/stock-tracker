@@ -1,5 +1,5 @@
 import { StockDetailClient } from "@/components/StockDetailClient";
-import { getStockQuote, getStockPerformance, getStockNews, getStockRecommendations } from "@/lib/stock-api";
+import { getStockQuote, getStockPerformance, getStockNews, getStockRecommendations, getStockProfile } from "@/lib/stock-api";
 import { StockNews } from "@/components/StockNews";
 import { StockFundamentals } from "@/components/StockFundamentals";
 import Link from "next/link";
@@ -12,11 +12,12 @@ interface PageProps {
 export default async function StockDetailPage({ params }: PageProps) {
     const { symbol } = await params;
     const decodedSymbol = decodeURIComponent(symbol);
-    const [quote, performance, news, recommendations] = await Promise.all([
+    const [quote, performance, news, recommendations, profile] = await Promise.all([
         getStockQuote(decodedSymbol),
         getStockPerformance(decodedSymbol),
         getStockNews(decodedSymbol),
-        getStockRecommendations(decodedSymbol)
+        getStockRecommendations(decodedSymbol),
+        getStockProfile(decodedSymbol)
     ]);
 
     if (quote) {
@@ -43,7 +44,11 @@ export default async function StockDetailPage({ params }: PageProps) {
                     <p className="text-muted-foreground">Real-time intraday values</p>
                 </header>
 
-                <StockDetailClient symbol={decodedSymbol} initialPerformance={performance} />
+                <StockDetailClient
+                    symbol={decodedSymbol}
+                    initialPerformance={performance}
+                    profile={profile}
+                />
 
                 {quote && <StockFundamentals quote={quote} />}
 

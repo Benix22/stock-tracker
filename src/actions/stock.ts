@@ -1,6 +1,6 @@
 "use server"
 
-import { getStockQuote, getStockHistory, getIntradayData as getIntradayDataApi, getBatchStockQuotes as getBatchStockQuotesApi, StockData, HistoricalDataPoint, IntradayResult } from "@/lib/stock-api";
+import { getStockQuote, getStockHistory, getIntradayData as getIntradayDataApi, getBatchStockQuotes as getBatchStockQuotesApi, getStockProfile as getStockProfileApi, StockData, HistoricalDataPoint, IntradayResult, StockProfile } from "@/lib/stock-api";
 
 export interface StockResult {
     quote: StockData | null;
@@ -26,4 +26,8 @@ export async function getStockHistoryWithRange(symbol: string, from: string, to:
 
 export async function getBatchStockQuotes(symbols: string[]): Promise<StockData[]> {
     return await getBatchStockQuotesApi(symbols);
+}
+
+export async function getStockProfile(symbol: string): Promise<StockProfile | null> {
+    return await getStockProfileApi(symbol);
 }

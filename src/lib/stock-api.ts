@@ -46,6 +46,18 @@ export interface HistoricalDataPoint {
     volume?: number;
 }
 
+export interface StockProfile {
+    symbol: string;
+    ipoDate?: string;
+    ceo?: string;
+    fullTimeEmployees?: string;
+    sector?: string;
+    industry?: string;
+    country?: string;
+    exchange?: string;
+    description?: string;
+}
+
 export async function getStockQuote(symbol: string): Promise<StockData | null> {
     try {
         const quote = await yahooFinance.quote(symbol);
@@ -364,5 +376,64 @@ export async function getStockRecommendations(symbol: string): Promise<Recommend
     } catch (error) {
         console.error(`Failed to fetch recommendations for ${symbol}:`, error);
         return { recommendations: [] };
+    }
+}
+
+export async function getStockProfile(symbol: string): Promise<StockProfile | null> {
+    try {
+        const result = await yahooFinance.quoteSummary(symbol, {
+            modules: ['assetProfile', 'defaultKeyStatistics', 'price', 'quoteType', 'summaryDetail']
+        });
+
+        if (!result) return null;
+
+        const profile = result.assetProfile;
+        const stats = result.defaultKeyStatistics;
+        const price = result.price;
+        const quoteType = result.quoteType;
+        const summaryDetail = result.summaryDetail;
+
+        // Fetch chart meta to get firstTradeDate reliably
+        const chartResult = await yahooFinance.chart(symbol, { period1: '2024-01-01' }).catch(() => null);
+        const firstTradeDate = chartResult?.meta?.firstTradeDate;
+
+        const ceo = profile?.companyOfficers?.[0]?.name;
+
+        // Format employees to "3.6k" format
+        let employees = "N/A";
+        if (profile?.fullTimeEmployees) {
+            if (profile.fullTimeEmployees >= 1000) {
+                employees = `${(profile.fullTimeEmployees / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}k`;
+            } else {
+                employees = profile.fullTimeEmployees.toString();
+            }
+        }
+
+        // Try multiple sources for IPO Date (First Trade Date)
+        const ipoSource = firstTradeDate || stats?.firstTradeDate || quoteType?.firstTradeDate || summaryDetail?.firstTradeDate;
+        let formattedIpoDate = undefined;
+
+        if (ipoSource) {
+            const rawDate = (ipoSource as any).raw !== undefined ? (ipoSource as any).raw : ipoSource;
+            const date = new Date(rawDate); // Chart meta usually returns a proper ISO or Date
+            if (!isNaN(date.getTime())) {
+                formattedIpoDate = date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+        }
+
+        return {
+            symbol: symbol,
+            ipoDate: formattedIpoDate,
+            ceo: ceo,
+            fullTimeEmployees: employees,
+            sector: profile?.sector,
+            industry: profile?.industry,
+            country: profile?.country,
+            exchange: price?.exchangeName,
+            description: profile?.longBusinessSummary
+        };
+    } catch (error) {
+        console.error(`Failed to fetch profile for ${symbol}:`, error);
+        return null;
     }
 }
