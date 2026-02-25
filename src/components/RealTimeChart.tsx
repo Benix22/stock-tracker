@@ -236,19 +236,29 @@ export function RealTimeChart({
 
     // If not comparison, standard price polish (e.g. 0.999 logic) can be applied, but this generic logic works too.
 
+    const decimals = symbol === 'EUR=X' ? 4 : 2;
+    const gapPercentage = (gapCount / (displayData.length || 1)) * 100;
+    const strokeGradientId = `stroke-gradient-${symbol}`;
+    const fillGradientId = `fill-gradient-${symbol}`;
+
     // Calculate change (Logic for header display)
     let changePercent = 0;
     let changeValue = 0;
+    let referencePrice = 0;
+    let referenceLabel = "";
 
     if (!isCustom && previousClose) {
         changeValue = currentPrice - previousClose;
         changePercent = (changeValue / previousClose) * 100;
+        referencePrice = previousClose;
+        referenceLabel = `vs Prev Close ($${referencePrice.toFixed(decimals)})`;
+    } else if (isCustom && displayData && displayData.length > 0) {
+        const firstPrice = displayData[0].close;
+        changeValue = currentPrice - firstPrice;
+        changePercent = (changeValue / firstPrice) * 100;
+        referencePrice = firstPrice;
+        referenceLabel = `in this period (Start: $${referencePrice.toFixed(decimals)})`;
     }
-
-    const gapPercentage = (gapCount / (displayData.length || 1)) * 100;
-    const decimals = symbol === 'EUR=X' ? 4 : 2;
-    const strokeGradientId = `stroke-gradient-${symbol}`;
-    const fillGradientId = `fill-gradient-${symbol}`;
 
     return (
         <Card className="w-full">
@@ -263,7 +273,7 @@ export function RealTimeChart({
                             </div>
                         )}
                     </CardTitle>
-                    {!isCustom && previousClose ? (
+                    {(changeValue !== 0 || changePercent !== 0) ? (
                         <div className="flex items-center text-sm font-medium">
                             <span className={`flex items-center ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : ""}`}>
                                 {changeValue > 0 ? "+" : ""}{changeValue.toFixed(decimals)} US$
@@ -273,14 +283,20 @@ export function RealTimeChart({
                                     {changePercent.toFixed(2)}%)
                                 </span>
                             </span>
-                            <span className="text-muted-foreground ml-2 text-xs">vs Prev Close (${previousClose.toFixed(decimals)})</span>
+                            <span className="text-muted-foreground ml-2 text-xs">{referenceLabel}</span>
 
                             <span className={`text-4xl font-bold ml-6 ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : "text-foreground"
                                 }`}>
                                 ${currentPrice.toFixed(decimals)}
                             </span>
                         </div>
-                    ) : null}
+                    ) : (
+                        <div className="flex items-center">
+                            <span className="text-4xl font-bold text-foreground">
+                                ${currentPrice.toFixed(decimals)}
+                            </span>
+                        </div>
+                    )}
                 </div>
             </CardHeader>
             <CardContent className="pl-0">
