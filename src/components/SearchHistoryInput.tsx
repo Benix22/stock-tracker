@@ -77,13 +77,24 @@ export function SearchHistoryInput({
                 align="start"
                 onOpenAutoFocus={(e) => e.preventDefault()}
             >
-                <Command className="border rounded-md shadow-md">
+                <Command className="border rounded-md shadow-md" shouldFilter={false}>
                     <CommandList>
                         <CommandGroup heading="Recent Searches">
                             {history.length > 0 ? (
-                                history
-                                    .filter(h => h.includes(searchValue) || !searchValue)
-                                    .map((symbol) => (
+                                (() => {
+                                    const filtered = history.filter(h =>
+                                        !searchValue || h.toLowerCase().includes(searchValue.toLowerCase())
+                                    );
+
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="py-6 text-center text-sm text-muted-foreground">
+                                                No matches found.
+                                            </div>
+                                        );
+                                    }
+
+                                    return filtered.map((symbol) => (
                                         <CommandItem
                                             key={symbol}
                                             value={symbol}
@@ -93,14 +104,9 @@ export function SearchHistoryInput({
                                             <Clock className="mr-2 h-4 w-4 opacity-70" />
                                             <span>{symbol}</span>
                                         </CommandItem>
-                                    ))
-                            ) : null}
-                            {history.length > 0 && history.filter(h => h.includes(searchValue) || !searchValue).length === 0 && (
-                                <div className="py-6 text-center text-sm text-muted-foreground">
-                                    No results found.
-                                </div>
-                            )}
-                            {history.length === 0 && (
+                                    ));
+                                })()
+                            ) : (
                                 <div className="py-6 text-center text-sm text-muted-foreground">
                                     No history yet.
                                 </div>
