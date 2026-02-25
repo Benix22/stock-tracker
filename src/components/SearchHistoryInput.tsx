@@ -81,31 +81,17 @@ export function SearchHistoryInput({
                     <CommandList>
                         <CommandGroup heading="Recent Searches">
                             {history.length > 0 ? (
-                                (() => {
-                                    const filtered = history.filter(h =>
-                                        !searchValue || h.toLowerCase().includes(searchValue.toLowerCase())
-                                    );
-
-                                    if (filtered.length === 0) {
-                                        return (
-                                            <div className="py-6 text-center text-sm text-muted-foreground">
-                                                No matches found.
-                                            </div>
-                                        );
-                                    }
-
-                                    return filtered.map((symbol) => (
-                                        <CommandItem
-                                            key={symbol}
-                                            value={symbol}
-                                            onSelect={handleSelect}
-                                            className="cursor-pointer"
-                                        >
-                                            <Clock className="mr-2 h-4 w-4 opacity-70" />
-                                            <span>{symbol}</span>
-                                        </CommandItem>
-                                    ));
-                                })()
+                                history.map((symbol) => (
+                                    <CommandItem
+                                        key={symbol}
+                                        value={symbol}
+                                        onSelect={handleSelect}
+                                        className="cursor-pointer"
+                                    >
+                                        <Clock className="mr-2 h-4 w-4 opacity-70" />
+                                        <span>{symbol}</span>
+                                    </CommandItem>
+                                ))
                             ) : (
                                 <div className="py-6 text-center text-sm text-muted-foreground">
                                     No history yet.
