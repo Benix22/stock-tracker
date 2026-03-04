@@ -344,8 +344,11 @@ export function RealTimeChart({
                                     contentStyle={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', borderRadius: 'var(--radius)' }}
                                     itemStyle={{ color: 'var(--foreground)' }}
                                     labelFormatter={(value) => {
-                                        if (isCustom) return new Date(value).toLocaleDateString();
-                                        return new Date(value).toLocaleString();
+                                        const date = new Date(value);
+                                        if (isCustom && !value.includes('T')) {
+                                            return date.toLocaleDateString();
+                                        }
+                                        return date.toLocaleString();
                                     }}
                                     formatter={(value: any, name: any, payload: any) => {
                                         // payload is complex, but rechart passes payload inside item usually

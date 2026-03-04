@@ -92,7 +92,12 @@ export async function getStockQuote(symbol: string): Promise<StockData | null> {
     }
 }
 
-export async function getStockHistory(symbol: string, from?: string, to?: string): Promise<HistoricalDataPoint[]> {
+export async function getStockHistory(
+    symbol: string,
+    from?: string,
+    to?: string,
+    interval: '1m' | '5m' | '15m' | '30m' | '60m' | '1h' | '1d' | '1wk' | '1mo' = '1d'
+): Promise<HistoricalDataPoint[]> {
     try {
         const today = new Date();
         const period1 = from ? from : '2024-01-01'; // Default or provided start
@@ -104,17 +109,25 @@ export async function getStockHistory(symbol: string, from?: string, to?: string
 
         const period2 = to ? to : today.toISOString().split('T')[0];
 
-        const result = await yahooFinance.historical(symbol, {
+        const result = await yahooFinance.chart(symbol, {
             period1: period1,
             period2: period2,
-            interval: '1d',
+            interval: interval,
         });
 
-        return result.map((item) => ({
-            date: item.date.toISOString().split('T')[0],
-            close: item.close,
-            volume: item.volume,
-        }));
+        return result.quotes
+            .filter(item => item.close !== null && item.close !== undefined)
+            .map((item) => {
+                const dateStr = interval === '1d' || interval === '1wk' || interval === '1mo'
+                    ? item.date.toISOString().split('T')[0]
+                    : item.date.toISOString();
+
+                return {
+                    date: dateStr,
+                    close: item.close as number,
+                    volume: item.volume as number,
+                };
+            });
     } catch (error) {
         console.error(`Failed to fetch history for ${symbol}:`, error);
         return [];
@@ -298,7 +311,7 @@ export interface NewsArticle {
 
 export async function getStockNews(symbol: string): Promise<NewsArticle[]> {
     try {
-        const result = await yahooFinance.search(symbol, { newsCount: 10 });
+        const result = await yahooFinance.search(symbol, { newsCount: 10 }, { validateResult: false }) as any;
         return (result.news || []) as any as NewsArticle[];
     } catch (error) {
         console.error(`Failed to fetch news for ${symbol}:`, error);

@@ -58,10 +58,11 @@ export function StockDetailClient({ symbol, initialPerformance, profile }: Stock
 
         if (start && end) {
             try {
+                const interval = activeRangeBadge === '5D' ? '1h' : '1d';
                 // Fetch data for main symbol
-                const mainDataPromise = getStockHistoryWithRange(symbol, start, end);
+                const mainDataPromise = getStockHistoryWithRange(symbol, start, end, interval);
                 // Fetch data for comparison symbol if active
-                const compDataPromise = comparedSymbol ? getStockHistoryWithRange(comparedSymbol, start, end) : Promise.resolve(null);
+                const compDataPromise = comparedSymbol ? getStockHistoryWithRange(comparedSymbol, start, end, interval) : Promise.resolve(null);
 
                 const [mainData, compData] = await Promise.all([mainDataPromise, compDataPromise]);
 
@@ -87,6 +88,7 @@ export function StockDetailClient({ symbol, initialPerformance, profile }: Stock
         const sym = compareInput.toUpperCase();
 
         try {
+            const interval = activeRangeBadge === '5D' ? '1h' : '1d';
             // If no range selected, force a default range (e.g., YTD or 1Y)
             let start = currentRange.start;
             let end = currentRange.end;
@@ -99,14 +101,14 @@ export function StockDetailClient({ symbol, initialPerformance, profile }: Stock
                 end = today.toISOString().split('T')[0];
 
                 // We need to fetch main data for this new range too, as we are switching mode
-                const mainData = await getStockHistoryWithRange(symbol, start, end);
+                const mainData = await getStockHistoryWithRange(symbol, start, end, interval);
                 setHistoricalData(mainData);
 
                 // Update range state implicitly (or let user know mode changed? DateRangePicker won't reflect this unless controlled)
                 // For now, simple fetch.
             }
 
-            const data = await getStockHistoryWithRange(sym, start!, end!);
+            const data = await getStockHistoryWithRange(sym, start!, end!, interval);
             setComparisonData(data);
             setComparedSymbol(sym);
             setCompareInput("");
@@ -154,8 +156,9 @@ export function StockDetailClient({ symbol, initialPerformance, profile }: Stock
         const fetchRange = async () => {
             setCurrentRange({ start, end });
             try {
-                const mainDataPromise = getStockHistoryWithRange(symbol, start, end);
-                const compDataPromise = comparedSymbol ? getStockHistoryWithRange(comparedSymbol, start, end) : Promise.resolve(null);
+                const interval = range === '5D' ? '1h' : '1d';
+                const mainDataPromise = getStockHistoryWithRange(symbol, start, end, interval);
+                const compDataPromise = comparedSymbol ? getStockHistoryWithRange(comparedSymbol, start, end, interval) : Promise.resolve(null);
                 const [mainData, compData] = await Promise.all([mainDataPromise, compDataPromise]);
                 setHistoricalData(mainData);
                 if (compData) setComparisonData(compData);
