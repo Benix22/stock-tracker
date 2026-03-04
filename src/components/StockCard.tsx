@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowUpIcon, ArrowDownIcon } from "lucide-react"
 import Link from "next/link"
-import { useRef, useState, useEffect } from "react"
+import { FlashingDigits } from "@/components/FlashingDigits"
 
 interface StockData {
     symbol: string;
@@ -20,26 +20,9 @@ export function StockCard({ stock }: StockCardProps) {
     const isPositive = stock.change >= 0;
     const decimals = stock.symbol === 'EUR=X' ? 4 : 2;
 
-    const [flashClass, setFlashClass] = useState<string>("");
-    const prevPriceRef = useRef<number>(stock.price);
-
-    useEffect(() => {
-        if (stock.price !== prevPriceRef.current) {
-            const isIncrease = stock.price > prevPriceRef.current;
-            setFlashClass(isIncrease ? "bg-green-500/20" : "bg-red-500/20");
-
-            const timer = setTimeout(() => {
-                setFlashClass("");
-            }, 1000);
-
-            prevPriceRef.current = stock.price;
-            return () => clearTimeout(timer);
-        }
-    }, [stock.price]);
-
     return (
         <Link href={`/stock/${stock.symbol}`} className="h-full block">
-            <Card className={`w-full h-full hover:bg-accent/50 transition-colors cursor-pointer flex flex-col justify-between ${flashClass} duration-1000`}>
+            <Card className="w-full h-full hover:bg-accent/50 transition-colors cursor-pointer flex flex-col justify-between">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
                     <div className="flex items-center gap-2 overflow-hidden flex-1">
                         <div className="shrink-0 w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border border-border p-1 shadow-sm">
@@ -60,7 +43,9 @@ export function StockCard({ stock }: StockCardProps) {
                     )}
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">${stock.price.toFixed(decimals)}</div>
+                    <div className="text-2xl font-bold">
+                        <FlashingDigits value={stock.price} decimals={decimals} prefix="$" />
+                    </div>
                     <p className={`text-xs ${isPositive ? "text-green-500" : "text-red-500"}`}>
                         {isPositive ? "+" : ""}{stock.change.toFixed(decimals)} US$ ({stock.changePercent.toFixed(2)}%)
                     </p>
