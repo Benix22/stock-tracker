@@ -8,6 +8,8 @@ import { fetchStockData, getBatchStockQuotes } from "@/actions/stock";
 import { SearchHistoryInput } from "@/components/SearchHistoryInput";
 import { getSearchHistory, addToSearchHistory } from "@/actions/history";
 
+import { SP500Heatmap } from "@/components/SP500Heatmap";
+
 interface StockDashboardProps {
     initialStocks: {
         symbol: string;
@@ -119,6 +121,8 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
                     )
                 ))}
             </div>
+
+            <SP500Heatmap />
 
             <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Historical Evolution</h2>
