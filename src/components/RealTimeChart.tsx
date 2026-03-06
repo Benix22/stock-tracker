@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getIntradayData } from "@/actions/stock";
 import { Loader2, ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import { calculateRSI, calculateBollingerBands } from "@/lib/indicators";
+import { FlashingDigits } from "@/components/FlashingDigits";
 
 interface DataPoint {
     date: string;
@@ -287,13 +288,13 @@ export function RealTimeChart({
 
                             <span className={`text-4xl font-bold ml-6 ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : "text-foreground"
                                 }`}>
-                                ${currentPrice.toFixed(decimals)}
+                                <FlashingDigits value={currentPrice} decimals={decimals} prefix="$" />
                             </span>
                         </div>
                     ) : (
                         <div className="flex items-center">
                             <span className="text-4xl font-bold text-foreground">
-                                ${currentPrice.toFixed(decimals)}
+                                <FlashingDigits value={currentPrice} decimals={decimals} prefix="$" />
                             </span>
                         </div>
                     )}
