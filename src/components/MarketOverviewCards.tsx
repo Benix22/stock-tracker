@@ -23,44 +23,6 @@ export function MarketOverviewCards() {
         { name: "Copper", symbol: "HG=F", price: 5.9240, unit: "USD / pound", change: 1.68, isPos: true, icon: "🧱" },
     ])
 
-    const [card1Flash, setCard1Flash] = useState("");
-    const [card2Flash, setCard2Flash] = useState("");
-    const [card3Flash, setCard3Flash] = useState("");
-
-    const prevCryptoPrice = useRef(cryptoData.price);
-    const prevDxyPrice = useRef(dxyData.price);
-    const prevBondPrice = useRef(bondData.price);
-
-    useEffect(() => {
-        if (cryptoData.price !== prevCryptoPrice.current) {
-            const isIncrease = cryptoData.price > prevCryptoPrice.current;
-            setCard1Flash(isIncrease ? "bg-green-500/10" : "bg-red-500/10");
-            const timer = setTimeout(() => setCard1Flash(""), 1000);
-            prevCryptoPrice.current = cryptoData.price;
-            return () => clearTimeout(timer);
-        }
-    }, [cryptoData.price]);
-
-    useEffect(() => {
-        if (dxyData.price !== prevDxyPrice.current) {
-            const isIncrease = dxyData.price > prevDxyPrice.current;
-            setCard2Flash(isIncrease ? "bg-green-500/10" : "bg-red-500/10");
-            const timer = setTimeout(() => setCard2Flash(""), 1000);
-            prevDxyPrice.current = dxyData.price;
-            return () => clearTimeout(timer);
-        }
-    }, [dxyData.price]);
-
-    useEffect(() => {
-        if (bondData.price !== prevBondPrice.current) {
-            const isIncrease = bondData.price > prevBondPrice.current;
-            setCard3Flash(isIncrease ? "bg-green-500/10" : "bg-red-500/10");
-            const timer = setTimeout(() => setCard3Flash(""), 1000);
-            prevBondPrice.current = bondData.price;
-            return () => clearTimeout(timer);
-        }
-    }, [bondData.price]);
-
     useEffect(() => {
         const interval = setInterval(async () => {
             try {
@@ -97,7 +59,7 @@ export function MarketOverviewCards() {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Crypto Market Overview */}
-            <Card className={`flex flex-col transition-colors duration-1000 ${card1Flash}`}>
+            <Card className="flex flex-col">
                 <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -109,7 +71,7 @@ export function MarketOverviewCards() {
                         </div>
                     </div>
                     <div className="mt-2 text-2xl font-bold">
-                        <FlashingDigits value={cryptoData.price} suffix=" T" onlyLastTwo={false} /> <span className="text-xs font-normal text-muted-foreground">USD</span>
+                        <FlashingDigits value={cryptoData.price} suffix=" T" /> <span className="text-xs font-normal text-muted-foreground">USD</span>
                     </div>
                     <div className={`text-sm font-medium ${cryptoData.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                         {cryptoData.change >= 0 ? '+' : ''}{cryptoData.change.toFixed(2)}%
@@ -175,7 +137,7 @@ export function MarketOverviewCards() {
                                 </div>
                                 <div className="text-right">
                                     <div className="text-xs font-bold">
-                                        <FlashingDigits value={stock.price} onlyLastTwo={false} /> <span className="text-[10px] font-normal text-muted-foreground leading-none">USD</span>
+                                        <FlashingDigits value={stock.price} /> <span className="text-[10px] font-normal text-muted-foreground leading-none">USD</span>
                                     </div>
                                     <div className={`text-[10px] font-bold ${stock.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                         {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)}%
@@ -192,7 +154,7 @@ export function MarketOverviewCards() {
             </Card>
 
             {/* Currencies & Commodities */}
-            <Card className={`flex flex-col transition-colors duration-1000 ${card2Flash}`}>
+            <Card className="flex flex-col">
                 <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -202,7 +164,7 @@ export function MarketOverviewCards() {
                         </div>
                     </div>
                     <div className="mt-2 text-2xl font-bold">
-                        <FlashingDigits value={dxyData.price} decimals={3} onlyLastTwo={false} /> <span className="text-xs font-normal text-muted-foreground">USD</span>
+                        <FlashingDigits value={dxyData.price} decimals={3} /> <span className="text-xs font-normal text-muted-foreground">USD</span>
                     </div>
                     <div className={`text-sm font-medium ${dxyData.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                         {dxyData.change >= 0 ? '+' : ''}{dxyData.change.toFixed(2)}%
@@ -241,7 +203,7 @@ export function MarketOverviewCards() {
                                 </div>
                                 <div className="text-right">
                                     <div className="text-xs font-bold leading-none">
-                                        <FlashingDigits value={item.price} decimals={item.symbol === 'HG=F' ? 4 : 2} onlyLastTwo={false} /> <span className="text-[10px] font-normal text-muted-foreground">{item.unit}</span>
+                                        <FlashingDigits value={item.price} decimals={item.symbol === 'HG=F' ? 4 : 2} /> <span className="text-[10px] font-normal text-muted-foreground">{item.unit}</span>
                                     </div>
                                     <div className={`text-[10px] font-bold ${item.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                         {item.change >= 0 ? '+' : ''}{item.change.toFixed(2)}%
@@ -258,7 +220,7 @@ export function MarketOverviewCards() {
             </Card>
 
             {/* Economic Indicators */}
-            <Card className={`flex flex-col transition-colors duration-1000 ${card3Flash}`}>
+            <Card className="flex flex-col">
                 <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -268,7 +230,7 @@ export function MarketOverviewCards() {
                         </div>
                     </div>
                     <div className="mt-2 text-2xl font-bold">
-                        <FlashingDigits value={bondData.price} decimals={3} suffix="%" onlyLastTwo={false} />
+                        <FlashingDigits value={bondData.price} decimals={3} suffix="%" />
                     </div>
                     <div className={`text-sm font-medium ${bondData.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                         {bondData.change >= 0 ? '+' : ''}{bondData.change.toFixed(2)}%
