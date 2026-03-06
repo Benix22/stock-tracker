@@ -8,8 +8,9 @@ import { fetchStockData, getBatchStockQuotes } from "@/actions/stock";
 import { SearchHistoryInput } from "@/components/SearchHistoryInput";
 import { getSearchHistory, addToSearchHistory } from "@/actions/history";
 
-import { SP500Heatmap } from "@/components/SP500Heatmap";
 import { MarketOverviewCards } from "@/components/MarketOverviewCards";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 interface StockDashboardProps {
     initialStocks: {
@@ -123,7 +124,16 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
                 ))}
             </div>
 
-            <SP500Heatmap />
+            <div className="flex justify-end pt-4">
+                <Link
+                    href="/heatmap"
+                    className="group inline-flex items-center gap-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl font-semibold transition-all duration-300 border border-primary/20 hover:border-primary/40 shadow-sm hover:shadow-md"
+                >
+                    <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                    View Real-time Market Heatmap
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+            </div>
 
             <MarketOverviewCards />
 
