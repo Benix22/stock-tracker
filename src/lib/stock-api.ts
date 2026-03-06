@@ -462,6 +462,10 @@ export async function getStockProfile(symbol: string): Promise<StockProfile | nu
 const API_NINJAS_KEY = 'RsIIb36UUWDJcfx9ZeO0vTjxduMJcwCOXnxTbiLh';
 
 export async function getStockLogo(symbol: string): Promise<string | undefined> {
+    // Skip indices (starting with ^) as they don't have logos and cause API errors
+    if (symbol.startsWith('^')) {
+        return undefined;
+    }
     const cleanSymbol = symbol.split('.')[0].split('-')[0].split('=')[0].toUpperCase();
     const logoDir = path.join(process.cwd(), 'public', 'logos');
     const logoPath = path.join(logoDir, `${cleanSymbol}.png`);

@@ -43,13 +43,19 @@ export function StockCard({ stock }: StockCardProps) {
             <Card className={`w-full h-full hover:bg-accent/50 transition-colors duration-1000 cursor-pointer flex flex-col justify-between ${flashBg}`}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
                     <div className="flex items-center gap-2 overflow-hidden flex-1">
-                        <div className="shrink-0 w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border border-border p-1 shadow-sm">
-                            <img
-                                src={stock.logoUrl || `https://ui-avatars.com/api/?name=${stock.symbol}&background=random&color=fff&rounded=true`}
-                                alt=""
-                                className="w-full h-full object-contain rounded-full"
-                            />
-                        </div>
+                        {stock.symbol === 'BTC-USD' ? (
+                            <div className="shrink-0 w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-xl shadow-sm">
+                                ₿
+                            </div>
+                        ) : (
+                            <div className="shrink-0 w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border border-border p-1 shadow-sm">
+                                <img
+                                    src={stock.logoUrl || `https://ui-avatars.com/api/?name=${stock.symbol}&background=random&color=fff&rounded=true`}
+                                    alt=""
+                                    className="w-full h-full object-contain rounded-full"
+                                />
+                            </div>
+                        )}
                         <CardTitle className="text-sm font-medium leading-tight truncate">
                             {stock.name} ({stock.symbol})
                         </CardTitle>

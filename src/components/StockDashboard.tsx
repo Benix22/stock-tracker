@@ -9,6 +9,7 @@ import { SearchHistoryInput } from "@/components/SearchHistoryInput";
 import { getSearchHistory, addToSearchHistory } from "@/actions/history";
 
 import { MarketOverviewCards } from "@/components/MarketOverviewCards";
+import { WorldIndices } from "@/components/WorldIndices";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
@@ -31,18 +32,26 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
         getSearchHistory().then(setHistory);
     }, []);
 
-    // Real-time updates
-    const symbolsString = stocks.map(s => s.symbol).join(',');
+    // Real-time updates with stable interval
     useEffect(() => {
         const interval = setInterval(async () => {
-            const currentSymbols = symbolsString.split(',').filter(Boolean);
+            // Need latest symbols - can use setStocks with functional update to read latest without triggering re-run
+            let currentSymbols: string[] = [];
+            setStocks(prev => {
+                currentSymbols = prev.map(s => s.symbol).filter(Boolean);
+                return prev;
+            });
+
             if (currentSymbols.length === 0) return;
 
             try {
                 const updatedQuotes = await getBatchStockQuotes(currentSymbols);
                 setStocks(prevStocks => prevStocks.map(s => {
                     const newQuote = updatedQuotes.find(q => q.symbol === s.symbol);
-                    return newQuote ? { ...s, quote: newQuote } : s;
+                    if (newQuote && newQuote.price !== s.quote?.price) {
+                        return { ...s, quote: newQuote };
+                    }
+                    return s;
                 }));
             } catch (error) {
                 console.error("Failed to update quotes", error);
@@ -50,7 +59,7 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [symbolsString]);
+    }, []);
 
     const handleSearch = async (symbol: string) => {
         if (!symbol.trim()) return;
@@ -74,7 +83,13 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
                 if (!data.quote) {
                     setError(`Could not find stock: ${upperSymbol}`);
                 } else {
-                    setStocks(prev => [...prev, { symbol: upperSymbol, ...data }]);
+                    const normalizedSymbol = data.quote.symbol;
+                    // Check again with normalized symbol in case it was already there under a different name
+                    if (stocks.some(s => s.symbol === normalizedSymbol)) {
+                        setError(`${normalizedSymbol} is already in your watchlist`);
+                    } else {
+                        setStocks(prev => [...prev, { symbol: normalizedSymbol, ...data }]);
+                    }
                 }
             } catch (err) {
                 setError("Failed to fetch stock data");
@@ -112,17 +127,22 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
                 </div>
             )}
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {stocks.map(({ symbol, quote }) => (
-                    quote ? (
-                        <StockCard key={symbol} stock={quote} />
-                    ) : (
-                        <div key={symbol} className="p-4 border rounded shadow bg-card text-card-foreground">
-                            Failed to load {symbol}
-                        </div>
-                    )
-                ))}
+            <div className="space-y-4">
+                <h2 className="text-xl font-bold tracking-tight px-1">Main Stocks</h2>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {stocks.map(({ symbol, quote }) => (
+                        quote ? (
+                            <StockCard key={symbol} stock={quote} />
+                        ) : (
+                            <div key={symbol} className="p-4 border rounded shadow bg-card text-card-foreground">
+                                Failed to load {symbol}
+                            </div>
+                        )
+                    ))}
+                </div>
             </div>
+
+            <WorldIndices />
 
             <div className="flex justify-end pt-4">
                 <Link

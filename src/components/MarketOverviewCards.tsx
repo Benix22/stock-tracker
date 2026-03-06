@@ -17,7 +17,7 @@ export function MarketOverviewCards() {
     ])
 
     const [commodities, setCommodities] = useState([
-        { name: "Crude oil", symbol: "CL=F", price: 74.06, unit: "USD / barrel", change: -0.67, isPos: false, icon: "💧" },
+        { name: "Brent oil", symbol: "BZ=F", price: 82.35, unit: "USD / barrel", change: -0.45, isPos: false, icon: "💧" },
         { name: "Natural gas", symbol: "NG=F", price: 2.934, unit: "USD / million BTUs", change: -3.93, isPos: false, icon: "🔥" },
         { name: "Gold", symbol: "GC=F", price: 5205.2, unit: "USD / troy ounce", change: 1.59, isPos: true, icon: "🥇" },
         { name: "Copper", symbol: "HG=F", price: 5.9240, unit: "USD / pound", change: 1.68, isPos: true, icon: "🧱" },
@@ -26,7 +26,7 @@ export function MarketOverviewCards() {
     useEffect(() => {
         const interval = setInterval(async () => {
             try {
-                const symbols = ["BTC-USD", "ETH-USD", "CL=F", "NG=F", "GC=F", "HG=F"]
+                const symbols = ["BTC-USD", "ETH-USD", "BZ=F", "NG=F", "GC=F", "HG=F"]
                 const quotes = await getBatchStockQuotes(symbols)
 
                 setCryptoStocks(prev => prev.map(s => {
