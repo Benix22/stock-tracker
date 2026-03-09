@@ -6,6 +6,7 @@ import { StockData } from "@/lib/stock-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FlashingDigits } from "@/components/FlashingDigits";
 import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
+import Link from "next/link";
 
 interface IndexInfo {
     symbol: string;
@@ -80,41 +81,42 @@ export function WorldIndices() {
                     const flashClass = flashStates[index.symbol] || "";
 
                     return (
-                        <Card
-                            key={index.symbol}
-                            className={`w-full h-full transition-colors duration-1000 relative overflow-hidden ${flashClass} hover:bg-accent/50 cursor-pointer flex flex-col justify-between`}
-                        >
-                            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 gap-3">
-                                <div className="flex items-center gap-3 overflow-hidden flex-1">
-                                    <div className="shrink-0 w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border border-border p-0.5 shadow-sm">
-                                        <img
-                                            src={`https://flagcdn.com/w80/${index.countryCode}.png`}
-                                            alt={index.region}
-                                            className="w-full h-full object-cover rounded-full"
-                                        />
+                        <Link key={index.symbol} href={`/stock/${index.symbol}`} className="block h-full">
+                            <Card
+                                className={`w-full h-full transition-colors duration-1000 relative overflow-hidden ${flashClass} hover:bg-accent/50 cursor-pointer flex flex-col justify-between`}
+                            >
+                                <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0 gap-3">
+                                    <div className="flex items-center gap-3 overflow-hidden flex-1">
+                                        <div className="shrink-0 w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border border-border p-0.5 shadow-sm">
+                                            <img
+                                                src={`https://flagcdn.com/w80/${index.countryCode}.png`}
+                                                alt={index.region}
+                                                className="w-full h-full object-cover rounded-full"
+                                            />
+                                        </div>
+                                        <div className="overflow-hidden">
+                                            <CardTitle className="text-sm font-bold leading-tight truncate">{index.name}</CardTitle>
+                                            <p className="text-[10px] text-muted-foreground uppercase mt-0.5 font-medium tracking-wide">{index.region}</p>
+                                        </div>
                                     </div>
-                                    <div className="overflow-hidden">
-                                        <CardTitle className="text-sm font-bold leading-tight truncate">{index.name}</CardTitle>
-                                        <p className="text-[10px] text-muted-foreground uppercase mt-0.5 font-medium tracking-wide">{index.region}</p>
+                                    {isPositive ? (
+                                        <ArrowUpIcon className="h-4 w-4 shrink-0 text-green-500" />
+                                    ) : (
+                                        <ArrowDownIcon className="h-4 w-4 shrink-0 text-red-500" />
+                                    )}
+                                </CardHeader>
+                                <CardContent className="p-4 pt-1">
+                                    <div className="text-2xl font-bold tracking-tight">
+                                        <FlashingDigits value={index.price} decimals={2} onlyLastTwo={false} />
                                     </div>
-                                </div>
-                                {isPositive ? (
-                                    <ArrowUpIcon className="h-4 w-4 shrink-0 text-green-500" />
-                                ) : (
-                                    <ArrowDownIcon className="h-4 w-4 shrink-0 text-red-500" />
-                                )}
-                            </CardHeader>
-                            <CardContent className="p-4 pt-1">
-                                <div className="text-2xl font-bold tracking-tight">
-                                    <FlashingDigits value={index.price} decimals={2} onlyLastTwo={false} />
-                                </div>
-                                <div className={`text-xs font-bold flex items-center gap-1.5 mt-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                                    <span>{isPositive ? '+' : ''}{index.change.toFixed(2)}</span>
-                                    <span className="opacity-40 font-normal">|</span>
-                                    <span>{isPositive ? '+' : ''}{index.changePercent.toFixed(2)}%</span>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                    <div className={`text-xs font-bold flex items-center gap-1.5 mt-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                                        <span>{isPositive ? '+' : ''}{index.change.toFixed(2)}</span>
+                                        <span className="opacity-40 font-normal">|</span>
+                                        <span>{isPositive ? '+' : ''}{index.changePercent.toFixed(2)}%</span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </Link>
                     );
                 })}
             </div>
