@@ -23,9 +23,10 @@ interface StockDetailClientProps {
     symbol: string;
     initialPerformance: StockPerformance | null;
     profile: StockProfileType | null;
+    isIndex?: boolean;
 }
 
-export function StockDetailClient({ symbol, initialPerformance, profile }: StockDetailClientProps) {
+export function StockDetailClient({ symbol, initialPerformance, profile, isIndex = false }: StockDetailClientProps) {
     const { isWatched, addToWatchlist, removeFromWatchlist } = useWatchlist();
     const [latestPrice, setLatestPrice] = useState<number | null>(
         initialPerformance?.currentPrice || null
@@ -277,9 +278,10 @@ export function StockDetailClient({ symbol, initialPerformance, profile }: Stock
                         showBollinger={showBollinger}
                         comparisonSymbol={comparedSymbol || undefined}
                         comparisonData={comparisonData || undefined}
+                        isIndex={isIndex}
                     />
                 </div>
-                {profile && (
+                {profile && !isIndex && (
                     <div className="w-full xl:w-80 2xl:w-96 shrink-0 flex">
                         <StockProfile profile={profile} />
                     </div>
@@ -290,6 +292,7 @@ export function StockDetailClient({ symbol, initialPerformance, profile }: Stock
                     performance={initialPerformance}
                     livePrice={latestPrice}
                     symbol={symbol}
+                    isIndex={isIndex}
                 />
             )}
         </div>

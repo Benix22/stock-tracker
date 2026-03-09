@@ -15,9 +15,10 @@ interface StockPerformanceProps {
     performance: StockPerformance;
     livePrice?: number | null;
     symbol: string;
+    isIndex?: boolean;
 }
 
-export function StockPerformanceTable({ performance, livePrice, symbol }: StockPerformanceProps) {
+export function StockPerformanceTable({ performance, livePrice, symbol, isIndex = false }: StockPerformanceProps) {
     if (!performance) return null;
 
     const currentPrice = livePrice || performance.currentPrice;
@@ -67,7 +68,7 @@ export function StockPerformanceTable({ performance, livePrice, symbol }: StockP
                                         </div>
                                     </TableCell>
                                     <TableCell className={`text-right ${colorClass}`}>
-                                        {isPositive ? "+" : ""}{period.metric.change.toFixed(decimals)} US$
+                                        {isPositive ? "+" : ""}{period.metric.change.toFixed(decimals)}{!isIndex && " US$"}
                                     </TableCell>
                                 </TableRow>
                             );

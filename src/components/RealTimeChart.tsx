@@ -43,6 +43,7 @@ interface RealTimeChartProps {
     showBollinger?: boolean;
     comparisonSymbol?: string;
     comparisonData?: DataPoint[];
+    isIndex?: boolean;
 }
 
 export function RealTimeChart({
@@ -57,7 +58,8 @@ export function RealTimeChart({
     showRSI,
     showBollinger,
     comparisonSymbol,
-    comparisonData
+    comparisonData,
+    isIndex = false
 }: RealTimeChartProps) {
     const [data, setData] = useState<DataPoint[]>(initialData);
     const [previousClose, setPreviousClose] = useState<number | null>(null);
@@ -252,13 +254,13 @@ export function RealTimeChart({
         changeValue = currentPrice - previousClose;
         changePercent = (changeValue / previousClose) * 100;
         referencePrice = previousClose;
-        referenceLabel = `vs Prev Close ($${referencePrice.toFixed(decimals)})`;
+        referenceLabel = isIndex ? `vs Prev Close (${referencePrice.toFixed(decimals)})` : `vs Prev Close ($${referencePrice.toFixed(decimals)})`;
     } else if (isCustom && displayData && displayData.length > 0) {
         const firstPrice = displayData[0].close;
         changeValue = currentPrice - firstPrice;
         changePercent = (changeValue / firstPrice) * 100;
         referencePrice = firstPrice;
-        referenceLabel = `in this period (Start: $${referencePrice.toFixed(decimals)})`;
+        referenceLabel = isIndex ? `in this period (Start: ${referencePrice.toFixed(decimals)})` : `in this period (Start: $${referencePrice.toFixed(decimals)})`;
     }
 
     return (
@@ -277,7 +279,7 @@ export function RealTimeChart({
                     {(changeValue !== 0 || changePercent !== 0) ? (
                         <div className="flex items-center text-sm font-medium">
                             <span className={`flex items-center ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : ""}`}>
-                                {changeValue > 0 ? "+" : ""}{changeValue.toFixed(decimals)} US$
+                                {changeValue > 0 ? "+" : ""}{changeValue.toFixed(decimals)}{!isIndex && " US$"}
                                 <span className="flex items-center ml-1">
                                     (
                                     {changeValue > 0 ? <ArrowUpIcon className="h-3 w-3 mr-1" /> : changeValue < 0 ? <ArrowDownIcon className="h-3 w-3 mr-1" /> : null}
@@ -288,13 +290,13 @@ export function RealTimeChart({
 
                             <span className={`text-4xl font-bold ml-6 ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : "text-foreground"
                                 }`}>
-                                <FlashingDigits value={currentPrice} decimals={decimals} prefix="$" />
+                                <FlashingDigits value={currentPrice} decimals={decimals} prefix={isIndex ? "" : "$"} />
                             </span>
                         </div>
                     ) : (
                         <div className="flex items-center">
                             <span className="text-4xl font-bold text-foreground">
-                                <FlashingDigits value={currentPrice} decimals={decimals} prefix="$" />
+                                <FlashingDigits value={currentPrice} decimals={decimals} prefix={isIndex ? "" : "$"} />
                             </span>
                         </div>
                     )}
@@ -362,7 +364,7 @@ export function RealTimeChart({
                                         // For Price lines:
                                         if (name === "Price" || name === symbol) {
                                             if (isComparisonMode) return [`${Number(value).toFixed(2)}%`, name];
-                                            return [`$${Number(value).toFixed(decimals)}`, name];
+                                            return [isIndex ? Number(value).toFixed(decimals) : `$${Number(value).toFixed(decimals)}`, name];
                                         }
                                         if (name === comparisonSymbol) {
                                             return [`${Number(value).toFixed(2)}%`, name];

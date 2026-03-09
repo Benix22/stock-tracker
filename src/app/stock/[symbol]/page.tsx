@@ -3,7 +3,7 @@ import { getStockQuote, getStockPerformance, getStockNews, getStockRecommendatio
 import { StockNews } from "@/components/StockNews";
 import { StockFundamentals } from "@/components/StockFundamentals";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft as ArrowLeftIcon } from "lucide-react";
 
 interface PageProps {
     params: Promise<{ symbol: string }>;
@@ -20,6 +20,8 @@ export default async function StockDetailPage({ params }: PageProps) {
         getStockProfile(decodedSymbol)
     ]);
 
+    const isIndex = decodedSymbol.startsWith('^') || decodedSymbol === 'FTSEMIB.MI';
+
     if (quote) {
         quote.recommendations = recommendations.recommendations;
         quote.targetPrice = recommendations.targetPrice;
@@ -33,7 +35,7 @@ export default async function StockDetailPage({ params }: PageProps) {
         <div className="min-h-screen bg-background p-8">
             <div className="max-w-7xl mx-auto space-y-8">
                 <Link href="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    <ArrowLeftIcon className="mr-2 h-4 w-4" />
                     Back to Dashboard
                 </Link>
 
@@ -59,9 +61,10 @@ export default async function StockDetailPage({ params }: PageProps) {
                     symbol={decodedSymbol}
                     initialPerformance={performance}
                     profile={profile}
+                    isIndex={isIndex}
                 />
 
-                {quote && <StockFundamentals quote={quote} />}
+                {quote && !isIndex && <StockFundamentals quote={quote} />}
 
                 <StockNews news={news} symbol={decodedSymbol} />
             </div>
