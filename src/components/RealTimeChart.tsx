@@ -10,6 +10,9 @@ import { FlashingDigits } from "@/components/FlashingDigits";
 
 interface DataPoint {
     date: string;
+    open: number;
+    high: number;
+    low: number;
     close: number;
     volume?: number;
 }
@@ -24,6 +27,9 @@ function generateFlatGapPoints(start: DataPoint, end: DataPoint, steps: number):
     for (let i = 1; i <= steps; i++) {
         points.push({
             date: new Date(startDate + stepTime * i).toISOString(),
+            open: start.close,
+            high: start.close,
+            low: start.close,
             close: start.close, // Constant value
         });
     }
@@ -171,6 +177,9 @@ export function RealTimeChart({
                     if (result.previousClose && result.previousCloseDate) {
                         const prevPoint: DataPoint = {
                             date: result.previousCloseDate,
+                            open: result.previousClose,
+                            high: result.previousClose,
+                            low: result.previousClose,
                             close: result.previousClose
                         };
                         const firstPoint = chartData[0];
