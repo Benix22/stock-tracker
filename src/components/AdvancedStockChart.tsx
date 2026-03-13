@@ -60,17 +60,16 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
     useEffect(() => {
         if (!chartContainerRef.current || data.length === 0) return;
 
-        // Clean up previous chart
-        if (chartRef.current) {
-            chartRef.current.remove();
-        }
-
         const handleResize = () => {
             if (chartContainerRef.current && chartRef.current) {
-                chartRef.current.applyOptions({ 
-                    width: chartContainerRef.current.clientWidth,
-                    height: chartContainerRef.current.clientHeight 
-                });
+                try {
+                    chartRef.current.applyOptions({ 
+                        width: chartContainerRef.current.clientWidth,
+                        height: chartContainerRef.current.clientHeight 
+                    });
+                } catch (e) {
+                    // Ignore resize errors on disposed charts
+                }
             }
         };
 
@@ -176,6 +175,7 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
         return () => {
             window.removeEventListener('resize', handleResize);
             chart.remove();
+            chartRef.current = null;
         };
     }, [data]);
 
