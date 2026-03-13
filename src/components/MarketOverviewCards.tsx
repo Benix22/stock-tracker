@@ -12,46 +12,63 @@ export function MarketOverviewCards() {
     const [bondData, setBondData] = useState({ price: 3.245, change: -0.15 })
 
     const [cryptoStocks, setCryptoStocks] = useState([
-        { name: "Bitcoin", symbol: "BTC-USD", price: 71410, change: 4.50, icon: "₿", color: "bg-orange-500" },
-        { name: "Ethereum", symbol: "ETH-USD", price: 2059.4, change: 3.85, icon: "Ξ", color: "bg-blue-400" }
+        { name: "Bitcoin", symbol: "BTC-USD", price: 71500, change: 4.50, icon: "₿", color: "bg-orange-500" },
+        { name: "Ethereum", symbol: "ETH-USD", price: 2100, change: 3.85, icon: "Ξ", color: "bg-blue-400" }
     ])
 
     const [commodities, setCommodities] = useState([
-        { name: "Brent oil", symbol: "BZ=F", price: 82.35, unit: "USD / barrel", change: -0.45, isPos: false, icon: "💧" },
-        { name: "Natural gas", symbol: "NG=F", price: 2.934, unit: "USD / million BTUs", change: -3.93, isPos: false, icon: "🔥" },
-        { name: "Gold", symbol: "GC=F", price: 5205.2, unit: "USD / troy ounce", change: 1.59, isPos: true, icon: "🥇" },
-        { name: "Copper", symbol: "HG=F", price: 5.9240, unit: "USD / pound", change: 1.68, isPos: true, icon: "🧱" },
+        { name: "Brent oil (Cash)", symbol: "BZ=F", price: 100.81, unit: "USD / barrel", change: 0.82, isPos: true, icon: "💧" },
+        { name: "Natural gas", symbol: "NG=F", price: 3.304, unit: "USD / million BTUs", change: -3.93, isPos: false, icon: "🔥" },
+        { name: "Gold", symbol: "GC=F", price: 5088.6, unit: "USD / troy ounce", change: 1.59, isPos: true, icon: "🥇" },
+        { name: "Copper", symbol: "HG=F", price: 5.787, unit: "USD / pound", change: 1.68, isPos: true, icon: "🧱" },
     ])
 
-    useEffect(() => {
-        const interval = setInterval(async () => {
-            try {
-                const symbols = ["BTC-USD", "ETH-USD", "BZ=F", "NG=F", "GC=F", "HG=F"]
-                const quotes = await getBatchStockQuotes(symbols)
+    const updateMarketData = async () => {
+        try {
+            const symbols = ["BTC-USD", "ETH-USD", "BZ=F", "NG=F", "GC=F", "HG=F"]
+            const quotes = await getBatchStockQuotes(symbols)
 
-                setCryptoStocks(prev => prev.map(s => {
-                    const q = quotes.find(quote => quote.symbol === s.symbol)
-                    return q ? { ...s, price: q.price, change: q.changePercent } : s
-                }))
+            setCryptoStocks(prev => prev.map(s => {
+                const q = quotes.find(quote => quote.symbol === s.symbol)
+                return q ? { ...s, price: q.price, change: q.changePercent } : s
+            }))
 
-                setCommodities(prev => prev.map(s => {
-                    const q = quotes.find(quote => quote.symbol === s.symbol)
-                    return q ? { ...s, price: q.price, change: q.changePercent, isPos: q.change >= 0 } : s
-                }))
+            setCommodities(prev => prev.map(s => {
+                const q = quotes.find(quote => quote.symbol === s.symbol)
+                if (!q) return s;
 
-                const simulateUpdate = (prev: number) => {
-                    const variation = (Math.random() - 0.5) * 0.005
-                    return prev * (1 + variation)
+                // Special handling for Brent Spot (USDBRO) vs Futures (BZ=F)
+                // We keep the spot price base provided by the user (101.00) 
+                // and update it following the futures delta to stay accurate.
+                if (s.symbol === "BZ=F") {
+                    const spotBase = 100.81;
+                    // Yahoo changePercent is typically in % (e.g. 1.66)
+                    const extrapolatedPrice = spotBase * (1 + q.changePercent / 100);
+                    return { ...s, price: extrapolatedPrice, change: q.changePercent, isPos: q.change >= 0 };
                 }
 
-                setCryptoData(prev => ({ ...prev, price: simulateUpdate(prev.price) }))
-                setDxyData(prev => ({ ...prev, price: simulateUpdate(prev.price) }))
-                setBondData(prev => ({ ...prev, price: simulateUpdate(prev.price) }))
+                return q ? { ...s, price: q.price, change: q.changePercent, isPos: q.change >= 0 } : s
+            }))
 
-            } catch (error) {
-                console.error("Failed to update market overview data", error)
+            const simulateUpdate = (prev: number) => {
+                const variation = (Math.random() - 0.5) * 0.005
+                return prev * (1 + variation)
             }
-        }, 5000)
+
+            setCryptoData(prev => ({ ...prev, price: simulateUpdate(prev.price) }))
+            setDxyData(prev => ({ ...prev, price: simulateUpdate(prev.price) }))
+            setBondData(prev => ({ ...prev, price: simulateUpdate(prev.price) }))
+
+        } catch (error) {
+            console.error("Failed to update market overview data", error)
+        }
+    }
+
+    useEffect(() => {
+        // Initial fetch
+        updateMarketData()
+
+        const interval = setInterval(updateMarketData, 5000)
 
         return () => clearInterval(interval)
     }, [])
