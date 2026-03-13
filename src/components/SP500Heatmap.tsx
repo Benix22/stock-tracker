@@ -38,15 +38,9 @@ export function SP500Heatmap({ height = "600px" }: SP500HeatmapProps) {
     }, []);
 
     return (
-        <Card className="w-full h-full overflow-hidden flex flex-col">
-            <CardHeader className="py-4">
-                <CardTitle className="flex justify-between items-center text-xl">
-                    <span>S&P 500 Heatmap</span>
-                    <span className="text-xs font-normal text-muted-foreground uppercase tracking-wider">TradingView Market Sentiment</span>
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 min-h-0">
-                <div className="w-full h-full rounded-lg overflow-hidden border border-border/50" style={{ minHeight: height }}>
+        <Card className="w-full h-full overflow-hidden flex flex-col border-none shadow-none bg-background">
+            <CardContent className="flex-1 min-h-0 p-0">
+                <div className="w-full h-full" style={{ height: height }}>
                     <div ref={containerRef} className="tradingview-widget-container h-full w-full">
                         <div className="tradingview-widget-container__widget h-full w-full"></div>
                     </div>
