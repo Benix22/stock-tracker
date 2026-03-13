@@ -49,6 +49,9 @@ export interface StockData {
 
 export interface HistoricalDataPoint {
     date: string;
+    open: number;
+    high: number;
+    low: number;
     close: number;
     volume?: number;
 }
@@ -124,6 +127,9 @@ export async function getStockHistory(
 
                 return {
                     date: dateStr,
+                    open: item.open as number,
+                    high: item.high as number,
+                    low: item.low as number,
                     close: item.close as number,
                     volume: item.volume as number,
                 };
@@ -207,6 +213,9 @@ export async function getIntradayData(symbol: string): Promise<IntradayResult | 
             .filter(q => q.close) // Filter nulls
             .map((item) => ({
                 date: item.date.toISOString(),
+                open: item.open as number,
+                high: item.high as number,
+                low: item.low as number,
                 close: item.close as number,
                 volume: item.volume as number,
             }));
