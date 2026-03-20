@@ -258,10 +258,12 @@ export async function getStockPerformance(symbol: string): Promise<StockPerforma
 
         if (!result || !result.quotes || result.quotes.length === 0) return null;
 
-        const quotes = result.quotes;
+        const quotes = result.quotes.filter((q: any) => q.close !== null && q.close !== undefined);
+        if (quotes.length === 0) return null;
+
         const latest = quotes[quotes.length - 1];
 
-        if (!latest.close) return null; // Should ideally check earlier
+        if (latest.close === null || latest.close === undefined) return null; 
 
         const currentPrice = latest.close as number;
         const latestDate = new Date(latest.date);

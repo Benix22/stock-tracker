@@ -25,7 +25,8 @@ export function StockPerformanceTable({ performance, livePrice, symbol, isIndex 
     const decimals = symbol === 'EUR=X' ? 4 : 2;
 
     const calculateMetric = (baseMetric: any) => {
-        const oldPrice = baseMetric.price; // historical price
+        const oldPrice = baseMetric?.price; // historical price
+        if (!oldPrice || oldPrice === 0) return { change: 0, percent: 0 };
         const change = currentPrice - oldPrice;
         const percent = (change / oldPrice) * 100;
         return { change, percent };
