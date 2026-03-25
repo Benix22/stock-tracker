@@ -18,8 +18,8 @@ export async function getAIPrediction(symbol: string): Promise<PredictionResult 
         }
 
         const genAI = new GoogleGenerativeAI(apiKey.trim());
-        // Usamos el modelo disponible en tu proyecto: gemini-2.5-flash
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        // Usamos el modelo gemini-3.1-pro-preview 
+        const model = genAI.getGenerativeModel({ model: "gemini-3.1-pro-preview" });
         
         const { quote, history } = await fetchStockData(symbol);
         

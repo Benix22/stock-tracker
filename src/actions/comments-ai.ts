@@ -16,8 +16,8 @@ export async function getCommunitySummary(symbol: string) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey.trim());
-    // Usamos el modelo disponible en tu proyecto: gemini-2.5-flash
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    // Usamos el modelo gemini-3.1-pro-preview
+    const model = genAI.getGenerativeModel({ model: "gemini-3.1-pro-preview" });
 
     const commentsText = comments
       .slice(0, 30)
@@ -36,7 +36,7 @@ export async function getCommunitySummary(symbol: string) {
 
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
-    return text || "There is active discussion about this asset with mixed opinions from the community.";
+    return text || "Sentiment is balanced with a mix of cautious optimism and risk assessment.";
   } catch (error: any) {
     console.error("AI Community Summary Error:", error.message);
     return "The community is actively discussing this asset, but we couldn't generate a summary at this moment.";
