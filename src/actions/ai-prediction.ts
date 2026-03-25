@@ -17,12 +17,16 @@ export async function getAIPrediction(symbol: string): Promise<PredictionResult 
             return null;
         }
 
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const genAI = new GoogleGenerativeAI(apiKey.trim());
+        // Usamos el modelo disponible en tu proyecto: gemini-2.5-flash
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         
         const { quote, history } = await fetchStockData(symbol);
         
-        if (!quote) return null;
+        if (!quote) {
+            console.error(`AI Prediction: No data found for ${symbol}`);
+            return null;
+        }
 
         const recentHistory = history.slice(-30).map(h => ({
             date: h.date,
@@ -33,36 +37,31 @@ export async function getAIPrediction(symbol: string): Promise<PredictionResult 
         const prompt = `
             Act as an expert Wall Street financial analyst.
             Analyze the stock ${symbol} (${quote.name}). 
-            Its current price is $${quote.price}.
-            Key fundamental data:
-            - Market Cap: ${quote.marketCap || 'N/A'}
-            - PE Ratio: ${quote.trailingPE || 'N/A'}
-            - 52 Week High: ${quote.fiftyTwoWeekHigh || 'N/A'}
-            - 52 Week Low: ${quote.fiftyTwoWeekLow || 'N/A'}
+            Current price: $${quote.price}.
+            Metrics: PE=${quote.trailingPE || 'N/A'}, MktCap=${quote.marketCap || 'N/A'}.
+            Recent History: ${JSON.stringify(recentHistory)}
             
-            Recent 30-day history (date, close, volume):
-            ${JSON.stringify(recentHistory)}
-            
-            Evaluate this data using basic technical analysis and fundamental principles.
-            Return your response strictly in this exact JSON format (no additional text or markdown blocks, just the validated JSON object):
+            Return strictly a JSON object:
             {
               "signal": "BUY" | "SELL" | "HOLD",
-              "confidence": integer from 1 to 100,
-              "reasoning": "Brief explanation in English (max 3 lines)."
+              "confidence": number 1-100,
+              "reasoning": "string"
             }
         `;
 
-        const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: prompt }] }]
-        });
-
+        const result = await model.generateContent(prompt);
         const content = result.response.text().trim();
-        // Clean markdown backticks if any
-        const cleaned = content.replace(/```json|```/g, "").trim();
-        const res: PredictionResult = JSON.parse(cleaned);
+        
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            console.error("AI Prediction: AI did not return a JSON object", content);
+            return null;
+        }
+        
+        const res: PredictionResult = JSON.parse(jsonMatch[0]);
         return res;
-    } catch (error) {
-        console.error("AI Prediction Error:", error);
+    } catch (error: any) {
+        console.error("AI Prediction Error Details:", error.message);
         return null; 
     }
 }
