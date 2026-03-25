@@ -8,3 +8,10 @@ export const positions = pgTable("positions", {
   avgPrice: doublePrecision("avg_price").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const watchlist = pgTable("watchlist", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  symbol: text("symbol").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
