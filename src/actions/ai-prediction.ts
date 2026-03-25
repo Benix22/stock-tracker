@@ -34,24 +34,24 @@ export async function getAIPrediction(symbol: string): Promise<PredictionResult 
         }));
 
         const prompt = `
-            Actúa como un experto analista financiero de Wall Street.
-            Analiza la acción ${symbol} (${quote.name}). 
-            Su precio actual es $${quote.price}.
-            Datos fundamentales clave:
+            Act as an expert Wall Street financial analyst.
+            Analyze the stock ${symbol} (${quote.name}). 
+            Its current price is $${quote.price}.
+            Key fundamental data:
             - Market Cap: ${quote.marketCap || 'N/A'}
             - PE Ratio: ${quote.trailingPE || 'N/A'}
             - 52 Week High: ${quote.fiftyTwoWeekHigh || 'N/A'}
             - 52 Week Low: ${quote.fiftyTwoWeekLow || 'N/A'}
             
-            Histórico reciente de 30 días (fecha, cierre, volumen):
+            Recent 30-day history (date, close, volume):
             ${JSON.stringify(recentHistory)}
             
-            Evalúa estos datos usando análisis técnico básico y principios fundamentales.
-            Devuelve tu respuesta estrictamente en este formato JSON exacto (sin texto adicional ni bloques markdown markdown, solo el objeto JSON validado):
+            Evaluate this data using basic technical analysis and fundamental principles.
+            Return your response strictly in this exact JSON format (no additional text or markdown blocks, just the validated JSON object):
             {
               "signal": "BUY" | "SELL" | "HOLD",
-              "confidence": número entero del 1 al 100 representando tu nivel de confianza,
-              "reasoning": "Breve explicación en español de máximo 3 líneas indicando por qué tomas esta decisión basados en las tendencias observadas."
+              "confidence": integer from 1 to 100 representing your confidence level,
+              "reasoning": "Brief explanation in English of maximum 3 lines indicating why you made this decision based on observed trends."
             }
         `;
 

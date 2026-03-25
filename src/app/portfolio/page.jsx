@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getBatchStockQuotes } from "@/actions/stock";
+import { useAuth, UserButton } from "@clerk/nextjs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 // Position: { id, ticker, shares, avgPrice, addedAt }
@@ -26,16 +27,19 @@ const fmtNum = (n) =>
 
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
-const STORAGE_KEY = "stock_tracker_portfolio";
-function loadPositions() {
+function loadPositions(userId) {
+  if (!userId) return [];
+  const key = `stock_tracker_portfolio_${userId}`;
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return JSON.parse(localStorage.getItem(key) || "[]");
   } catch {
     return [];
   }
 }
-function savePositions(positions) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+function savePositions(userId, positions) {
+  if (!userId) return;
+  const key = `stock_tracker_portfolio_${userId}`;
+  localStorage.setItem(key, JSON.stringify(positions));
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -74,9 +78,9 @@ function AddPositionModal({ onAdd, onClose, existingTickers }) {
     const t = ticker.trim().toUpperCase();
     const s = parseFloat(shares);
     const p = parseFloat(avgPrice);
-    if (!t) return setError("Introduce un ticker (ej: AAPL)");
-    if (!s || s <= 0) return setError("Cantidad de acciones inválida");
-    if (!p || p <= 0) return setError("Precio de compra inválido");
+    if (!t) return setError("Enter a ticker (e.g. AAPL)");
+    if (!s || s <= 0) return setError("Invalid share count");
+    if (!p || p <= 0) return setError("Invalid purchase price");
     onAdd({ ticker: t, shares: s, avgPrice: p });
     onClose();
   };
@@ -84,7 +88,7 @@ function AddPositionModal({ onAdd, onClose, existingTickers }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl">
-        <h3 className="mb-5 text-lg font-bold text-foreground">Añadir posición</h3>
+        <h3 className="mb-5 text-lg font-bold text-foreground">Add Position</h3>
 
         <div className="space-y-4">
           <div>
@@ -95,14 +99,14 @@ function AddPositionModal({ onAdd, onClose, existingTickers }) {
               autoFocus
               value={ticker}
               onChange={(e) => setTicker(e.target.value.toUpperCase())}
-              placeholder="Ej: NVDA, AAPL, MSFT…"
+              placeholder="E.g. NVDA, AAPL, MSFT…"
               className="w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Nº acciones
+                Shares Count
               </label>
               <input
                 type="number"
@@ -116,7 +120,7 @@ function AddPositionModal({ onAdd, onClose, existingTickers }) {
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Precio de compra
+                Purchase Price
               </label>
               <input
                 type="number"
@@ -137,13 +141,13 @@ function AddPositionModal({ onAdd, onClose, existingTickers }) {
             onClick={onClose}
             className="flex-1 rounded-lg border py-2.5 text-sm font-medium text-foreground hover:bg-accent transition"
           >
-            Cancelar
+            Cancel
           </button>
           <button
             onClick={handleSubmit}
             className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition"
           >
-            Añadir
+            Add
           </button>
         </div>
       </div>
@@ -153,6 +157,7 @@ function AddPositionModal({ onAdd, onClose, existingTickers }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function PortfolioPage() {
+  const { userId, isLoaded: authLoaded } = useAuth();
   const [positions, setPositions] = useState([]);
   const [quotes, setQuotes] = useState({}); // { [ticker]: Quote }
   const [loading, setLoading] = useState(false);
@@ -160,10 +165,12 @@ export default function PortfolioPage() {
   const [showModal, setShowModal] = useState(false);
   const [sortKey, setSortKey] = useState("value"); // "value" | "pl" | "plPct" | "ticker"
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount or when userId changes
   useEffect(() => {
-    setPositions(loadPositions());
-  }, []);
+    if (authLoaded && userId) {
+      setPositions(loadPositions(userId));
+    }
+  }, [authLoaded, userId]);
 
   // Fetch quotes whenever positions change
   const refreshQuotes = useCallback(async () => {
@@ -213,13 +220,13 @@ export default function PortfolioPage() {
       updated = [...positions, { ...pos, id: Date.now() }];
     }
     setPositions(updated);
-    savePositions(updated);
+    savePositions(userId, updated);
   };
 
   const removePosition = (id) => {
     const updated = positions.filter((p) => p.id !== id);
     setPositions(updated);
-    savePositions(updated);
+    savePositions(userId, updated);
   };
 
   // ── Derived metrics ───────────────────────────────────────────────────────
@@ -271,82 +278,87 @@ export default function PortfolioPage() {
             className="group flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-fit"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Volver al Dashboard
+            Back to Dashboard
           </Link>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight">Mi Portfolio</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {lastUpdated
-                ? `Actualizado: ${lastUpdated.toLocaleTimeString("es-ES")} · Auto-refresh cada 60s`
-                : "Cargando cotizaciones…"}
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={refreshQuotes}
-              disabled={loading}
-              className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition disabled:opacity-50"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={loading ? "animate-spin" : ""}
+            <div className="flex items-center gap-6">
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight">My Portfolio</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {lastUpdated
+                    ? `Updated: ${lastUpdated.toLocaleTimeString("en-US")} · Auto-refresh every 60s`
+                    : "Loading quotes…"}
+                </p>
+              </div>
+              <div className="border-l border-border pl-6">
+                <UserButton appearance={{ elements: { userButtonAvatarBox: "w-10 h-10" } }} />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={refreshQuotes}
+                disabled={loading}
+                className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition disabled:opacity-50"
               >
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                <path d="M8 16H3v5" />
-              </svg>
-              Actualizar
-            </button>
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14" /><path d="M12 5v14" />
-              </svg>
-              Añadir posición
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={loading ? "animate-spin" : ""}
+                >
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M8 16H3v5" />
+                </svg>
+                Refresh
+              </button>
+              <button
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14" /><path d="M12 5v14" />
+                </svg>
+                Add Position
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
         {/* Summary cards */}
         {positions.length > 0 && (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <StatCard
-              label="Valor total"
+              label="Total Value"
               value={fmtCurrency(totalValue)}
-              sub={`Coste: ${fmtCurrency(totalCost)}`}
+              sub={`Cost: ${fmtCurrency(totalCost)}`}
               neutral
             />
             <StatCard
-              label="P&L total"
+              label="Total P&L"
               value={fmtCurrency(totalPL)}
               sub={fmtPct(totalPLPct)}
               positive={totalPL >= 0}
               negative={totalPL < 0}
             />
             <StatCard
-              label="Cambio hoy"
+              label="Day Change"
               value={fmtCurrency(totalDayChange)}
-              sub="Variación diaria"
+              sub="Daily Variation"
               positive={totalDayChange >= 0}
               negative={totalDayChange < 0}
             />
             <StatCard
-              label="Posiciones"
+              label="Positions"
               value={positions.length}
-              sub="activos en cartera"
+              sub="active assets"
               neutral
             />
           </div>
@@ -361,13 +373,13 @@ export default function PortfolioPage() {
                 <path d="M3 9h18M9 21V9" />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold text-foreground">Portfolio vacío</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Añade tu primera posición para ver tu P&L en tiempo real.</p>
+            <h2 className="text-lg font-semibold text-foreground">Empty Portfolio</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Add your first position to track your P&L in real-time.</p>
             <button
               onClick={() => setShowModal(true)}
               className="mt-6 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition"
             >
-              Añadir posición
+              Add Position
             </button>
           </div>
         )}
@@ -378,10 +390,10 @@ export default function PortfolioPage() {
             {/* Table header */}
             <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 border-b bg-muted/50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {[
-                { key: "ticker", label: "Activo" },
-                { key: null, label: "Precio" },
-                { key: null, label: "Posición" },
-                { key: "value", label: "Valor" },
+                { key: "ticker", label: "Asset" },
+                { key: null, label: "Price" },
+                { key: null, label: "Position" },
+                { key: "value", label: "Value" },
                 { key: "pl", label: "P&L" },
                 { key: "plPct", label: "%" },
               ].map(({ key, label }) => (
@@ -420,7 +432,7 @@ export default function PortfolioPage() {
                     </div>
                     <div>
                       <div className="font-semibold text-foreground">{pos.ticker}</div>
-                      <div className="text-xs text-muted-foreground">{fmtNum(pos.shares)} acciones</div>
+                      <div className="text-xs text-muted-foreground">{fmtNum(pos.shares)} shares</div>
                     </div>
                   </div>
 
@@ -431,7 +443,7 @@ export default function PortfolioPage() {
                     </div>
                     {pos.dayChange != null && (
                       <div className={`text-xs tabular-nums ${dayUp ? "text-emerald-500" : "text-rose-500"}`}>
-                        {dayUp ? "+" : ""}{fmtCurrency(pos.dayChange, pos.currency)} hoy
+                        {dayUp ? "+" : ""}{fmtCurrency(pos.dayChange, pos.currency)} today
                       </div>
                     )}
                   </div>
@@ -441,7 +453,7 @@ export default function PortfolioPage() {
                     <div className="tabular-nums text-sm text-foreground">
                       {fmtCurrency(pos.avgPrice, pos.currency)}
                     </div>
-                    <div className="text-xs text-muted-foreground">precio compra</div>
+                    <div className="text-xs text-muted-foreground">buying price</div>
                   </div>
 
                   {/* Market value */}
@@ -474,7 +486,7 @@ export default function PortfolioPage() {
                     <button
                       onClick={() => removePosition(pos.id)}
                       className="rounded-lg p-1.5 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                      title="Eliminar posición"
+                      title="Remove position"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
@@ -491,7 +503,7 @@ export default function PortfolioPage() {
         {/* Footer note */}
         {positions.length > 0 && (
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            Las posiciones se guardan localmente en tu navegador · Precios de Yahoo Finance con ~15 min de retardo
+            Your positions are private and linked to your Clerk account · Yahoo Finance prices with ~15 min delay
           </p>
         )}
       </div>

@@ -39,8 +39,8 @@ export function AIPrediction({ symbol, isIndex }: { symbol: string, isIndex: boo
         return (
             <div className="w-full relative overflow-hidden rounded-2xl border border-border/50 p-6 bg-card/50 flex flex-col items-center justify-center min-h-[160px] backdrop-blur-sm animate-pulse">
                 <BrainCircuit className="h-8 w-8 text-primary/40 mb-3" />
-                <h3 className="font-medium text-foreground/70 mb-1">Analizando Mercado con Inteligencia Artificial</h3>
-                <p className="text-sm text-muted-foreground text-center max-w-sm">Evaluando los últimos 30 días de histórico y métricas fundamentales de {symbol}...</p>
+                <h3 className="font-medium text-foreground/70 mb-1">Analyzing Market with AI</h3>
+                <p className="text-sm text-muted-foreground text-center max-w-sm">Evaluating the last 30 days of history and fundamental metrics of {symbol}...</p>
             </div>
         );
     }
@@ -50,8 +50,8 @@ export function AIPrediction({ symbol, isIndex }: { symbol: string, isIndex: boo
             <div className="w-full rounded-2xl border border-destructive/20 p-5 bg-destructive/5 flex items-start gap-4 text-sm text-destructive">
                 <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                 <div className="flex-1">
-                    <p className="font-semibold text-base mb-1">Modelo Predictivo no disponible</p>
-                    <p className="text-destructive/80 leading-relaxed">No se pudo procesar la IA. Asegúrate de tener <code className="bg-destructive/10 px-1 py-0.5 rounded font-mono text-xs">GEMINI_API_KEY</code> en tu archivo <code className="bg-destructive/10 px-1 py-0.5 rounded font-mono text-xs">.env.local</code>.</p>
+                    <p className="font-semibold text-base mb-1">Predictive Model Unavailable</p>
+                    <p className="text-destructive/80 leading-relaxed">AI could not be processed. Make sure to have <code className="bg-destructive/10 px-1 py-0.5 rounded font-mono text-xs">GEMINI_API_KEY</code> in your <code className="bg-destructive/10 px-1 py-0.5 rounded font-mono text-xs">.env.local</code> file.</p>
                 </div>
             </div>
         );
@@ -67,7 +67,7 @@ export function AIPrediction({ symbol, isIndex }: { symbol: string, isIndex: boo
             fill: "bg-emerald-500",
             blob: "from-emerald-500/0 to-emerald-500/10",
             icon: TrendingUp,
-            label: "COMPRAR",
+            label: "BUY",
             hoverRing: "hover:ring-emerald-500/20"
         },
         SELL: {
@@ -77,7 +77,7 @@ export function AIPrediction({ symbol, isIndex }: { symbol: string, isIndex: boo
             fill: "bg-rose-500",
             blob: "from-rose-500/0 to-rose-500/10",
             icon: TrendingDown,
-            label: "VENDER",
+            label: "SELL",
             hoverRing: "hover:ring-rose-500/20"
         },
         HOLD: {
@@ -87,7 +87,7 @@ export function AIPrediction({ symbol, isIndex }: { symbol: string, isIndex: boo
             fill: "bg-amber-500",
             blob: "from-amber-500/0 to-amber-500/10",
             icon: Minus,
-            label: "MANTENER",
+            label: "HOLD",
             hoverRing: "hover:ring-amber-500/20"
         }
     };
@@ -109,7 +109,7 @@ export function AIPrediction({ symbol, isIndex }: { symbol: string, isIndex: boo
                     <div>
                         <div className="flex items-center gap-1.5 mb-1 opacity-90">
                             <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-                            <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Veredicto IA</h3>
+                            <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">AI Verdict</h3>
                         </div>
                         <div className={`text-2xl font-black tracking-tighter ${config.color} drop-shadow-sm`}>
                             {config.label}
@@ -124,7 +124,7 @@ export function AIPrediction({ symbol, isIndex }: { symbol: string, isIndex: boo
                 <div className="flex-1 flex flex-col justify-center">
                     <div className="flex items-center gap-3 mb-3">
                         <span className="text-xs font-semibold tracking-wide text-foreground/70 uppercase">
-                            Confianza: <span className={config.color}>{confidence}%</span>
+                            Confidence: <span className={config.color}>{confidence}%</span>
                         </span>
                         <div className="h-1.5 flex-grow bg-secondary/80 rounded-full overflow-hidden max-w-[200px]">
                             <div 
