@@ -148,24 +148,6 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
 
             <WorldIndices />
 
-            <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4">
-                <Link
-                    href="/advanced"
-                    className="group inline-flex items-center gap-2 px-6 py-3 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 rounded-xl font-semibold transition-all duration-300 border border-blue-600/20 hover:border-blue-600/40 shadow-sm hover:shadow-md"
-                >
-                    <LineChart className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                    Open Advanced Pro Chart
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                    href="/heatmap"
-                    className="group inline-flex items-center gap-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl font-semibold transition-all duration-300 border border-primary/20 hover:border-primary/40 shadow-sm hover:shadow-md"
-                >
-                    <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-                    View Real-time Market Heatmap
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-            </div>
 
             <MarketOverviewCards />
 
