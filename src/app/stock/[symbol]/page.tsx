@@ -3,6 +3,7 @@ import { getStockQuote, getStockPerformance, getStockNews, getStockRecommendatio
 import { StockNews } from "@/components/StockNews";
 import { StockFundamentals } from "@/components/StockFundamentals";
 import { AIPrediction } from "@/components/AIPrediction";
+import { StockComments } from "@/components/StockComments";
 import Link from "next/link";
 import { ArrowLeft as ArrowLeftIcon } from "lucide-react";
 
@@ -68,6 +69,8 @@ export default async function StockDetailPage({ params }: PageProps) {
                 <AIPrediction symbol={decodedSymbol} isIndex={isIndex} />
 
                 {quote && !isIndex && <StockFundamentals quote={quote} />}
+
+                <StockComments symbol={decodedSymbol} />
 
                 <StockNews news={news} symbol={decodedSymbol} />
             </div>
