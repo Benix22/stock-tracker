@@ -2,13 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { getBatchStockQuotes } from "@/actions/stock";
 import { useAuth, UserButton } from "@clerk/nextjs";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-// Position: { id, ticker, shares, avgPrice, addedAt }
-// Quote:    { ticker, price, change, changePct, currency }
+import { getPositions, addOrUpdatePosition, deletePosition } from "@/actions/portfolio-db";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const fmtCurrency = (n, currency = "USD") =>
@@ -24,23 +21,6 @@ const fmtPct = (n) =>
 
 const fmtNum = (n) =>
   new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-
-
-// ─── Storage helpers ──────────────────────────────────────────────────────────
-function loadPositions(userId) {
-  if (!userId) return [];
-  const key = `stock_tracker_portfolio_${userId}`;
-  try {
-    return JSON.parse(localStorage.getItem(key) || "[]");
-  } catch {
-    return [];
-  }
-}
-function savePositions(userId, positions) {
-  if (!userId) return;
-  const key = `stock_tracker_portfolio_${userId}`;
-  localStorage.setItem(key, JSON.stringify(positions));
-}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -68,21 +48,26 @@ function ChangeChip({ value, pct }) {
   );
 }
 
-function AddPositionModal({ onAdd, onClose, existingTickers }) {
+function AddPositionModal({ onAdd, onClose, existingTickers, loading: submitting }) {
   const [ticker, setTicker] = useState("");
   const [shares, setShares] = useState("");
   const [avgPrice, setAvgPrice] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const t = ticker.trim().toUpperCase();
     const s = parseFloat(shares);
     const p = parseFloat(avgPrice);
     if (!t) return setError("Enter a ticker (e.g. AAPL)");
     if (!s || s <= 0) return setError("Invalid share count");
     if (!p || p <= 0) return setError("Invalid purchase price");
-    onAdd({ ticker: t, shares: s, avgPrice: p });
-    onClose();
+    
+    try {
+      await onAdd({ ticker: t, shares: s, avgPrice: p });
+      onClose();
+    } catch (e) {
+      setError("Failed to add position. Try again.");
+    }
   };
 
   return (
@@ -101,6 +86,7 @@ function AddPositionModal({ onAdd, onClose, existingTickers }) {
               onChange={(e) => setTicker(e.target.value.toUpperCase())}
               placeholder="E.g. NVDA, AAPL, MSFT…"
               className="w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              disabled={submitting}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -116,6 +102,7 @@ function AddPositionModal({ onAdd, onClose, existingTickers }) {
                 onChange={(e) => setShares(e.target.value)}
                 placeholder="10"
                 className="w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                disabled={submitting}
               />
             </div>
             <div>
@@ -130,6 +117,7 @@ function AddPositionModal({ onAdd, onClose, existingTickers }) {
                 onChange={(e) => setAvgPrice(e.target.value)}
                 placeholder="150.00"
                 className="w-full rounded-lg border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                disabled={submitting}
               />
             </div>
           </div>
@@ -140,14 +128,17 @@ function AddPositionModal({ onAdd, onClose, existingTickers }) {
           <button
             onClick={onClose}
             className="flex-1 rounded-lg border py-2.5 text-sm font-medium text-foreground hover:bg-accent transition"
+            disabled={submitting}
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition"
+            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition flex items-center justify-center gap-2"
+            disabled={submitting}
           >
-            Add
+            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {submitting ? "Adding..." : "Add"}
           </button>
         </div>
       </div>
@@ -160,22 +151,39 @@ export default function PortfolioPage() {
   const { userId, isLoaded: authLoaded } = useAuth();
   const [positions, setPositions] = useState([]);
   const [quotes, setQuotes] = useState({}); // { [ticker]: Quote }
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [quotesLoading, setQuotesLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [sortKey, setSortKey] = useState("value"); // "value" | "pl" | "plPct" | "ticker"
 
-  // Load from localStorage on mount or when userId changes
+  // Fetch from DB
+  const refreshHistory = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const data = await getPositions();
+      setPositions(data.map(p => ({ ...p, ticker: p.symbol })));
+    } catch (e) {
+      console.error("Failed to load positions", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
   useEffect(() => {
     if (authLoaded && userId) {
-      setPositions(loadPositions(userId));
+      refreshHistory();
     }
-  }, [authLoaded, userId]);
+  }, [authLoaded, userId, refreshHistory]);
 
   // Fetch quotes whenever positions change
   const refreshQuotes = useCallback(async () => {
-    if (positions.length === 0) return;
-    setLoading(true);
+    if (positions.length === 0) {
+        setQuotesLoading(false);
+        return;
+    }
+    setQuotesLoading(true);
     try {
       const tickers = [...new Set(positions.map((p) => p.ticker))];
       const results = await getBatchStockQuotes(tickers);
@@ -194,39 +202,36 @@ export default function PortfolioPage() {
     } catch (err) {
       console.error("Failed to fetch quotes", err);
     } finally {
-      setLoading(false);
+      setQuotesLoading(false);
     }
   }, [positions]);
 
   useEffect(() => {
-    refreshQuotes();
-    const interval = setInterval(refreshQuotes, 60_000); // auto-refresh every minute
-    return () => clearInterval(interval);
-  }, [refreshQuotes]);
+    if (positions.length > 0) {
+        refreshQuotes();
+        const interval = setInterval(refreshQuotes, 60_000); // auto-refresh every minute
+        return () => clearInterval(interval);
+    }
+  }, [refreshQuotes, positions.length]);
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
-  const addPosition = (pos) => {
-    // If ticker already exists, merge (add shares, recalculate avg)
-    const existing = positions.find((p) => p.ticker === pos.ticker);
-    let updated;
-    if (existing) {
-      const totalShares = existing.shares + pos.shares;
-      const avgPrice =
-        (existing.shares * existing.avgPrice + pos.shares * pos.avgPrice) / totalShares;
-      updated = positions.map((p) =>
-        p.ticker === pos.ticker ? { ...p, shares: totalShares, avgPrice } : p
-      );
-    } else {
-      updated = [...positions, { ...pos, id: Date.now() }];
+  const handleAddPosition = async (pos) => {
+    setActionLoading(true);
+    try {
+      await addOrUpdatePosition({ symbol: pos.ticker, shares: pos.shares, avgPrice: pos.avgPrice });
+      await refreshHistory();
+    } finally {
+      setActionLoading(false);
     }
-    setPositions(updated);
-    savePositions(userId, updated);
   };
 
-  const removePosition = (id) => {
-    const updated = positions.filter((p) => p.id !== id);
-    setPositions(updated);
-    savePositions(userId, updated);
+  const handleRemovePosition = async (id) => {
+    try {
+      setPositions(prev => prev.filter(p => p.id !== id)); // Optimistic UI
+      await deletePosition(id);
+    } catch (e) {
+      await refreshHistory(); // Rollback
+    }
   };
 
   // ── Derived metrics ───────────────────────────────────────────────────────
@@ -259,15 +264,28 @@ export default function PortfolioPage() {
   // Weight (for allocation bar)
   const maxValue = Math.max(...enriched.map((p) => p.currentValue ?? p.costBasis), 1);
 
+  // Loading state
+  if (loading) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+            <div className="flex flex-col items-center gap-4">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <p className="text-muted-foreground font-medium">Securing your portfolio...</p>
+            </div>
+        </div>
+    )
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {showModal && (
           <AddPositionModal
-            onAdd={addPosition}
+            onAdd={handleAddPosition}
             onClose={() => setShowModal(false)}
             existingTickers={positions.map((p) => p.ticker)}
+            loading={actionLoading}
           />
         )}
 
@@ -287,7 +305,7 @@ export default function PortfolioPage() {
                 <p className="mt-1 text-sm text-muted-foreground">
                   {lastUpdated
                     ? `Updated: ${lastUpdated.toLocaleTimeString("en-US")} · Auto-refresh every 60s`
-                    : "Loading quotes…"}
+                    : "Connecting to secure database…"}
                 </p>
               </div>
               <div className="border-l border-border pl-6">
@@ -297,7 +315,7 @@ export default function PortfolioPage() {
             <div className="flex gap-3">
               <button
                 onClick={refreshQuotes}
-                disabled={loading}
+                disabled={quotesLoading || positions.length === 0}
                 className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition disabled:opacity-50"
               >
                 <svg
@@ -310,7 +328,7 @@ export default function PortfolioPage() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={loading ? "animate-spin" : ""}
+                  className={quotesLoading ? "animate-spin" : ""}
                 >
                   <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                   <path d="M21 3v5h-5" />
@@ -365,7 +383,7 @@ export default function PortfolioPage() {
         )}
 
         {/* Empty state */}
-        {positions.length === 0 && (
+        {!loading && positions.length === 0 && (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed py-24 text-center">
             <div className="mb-4 rounded-full bg-primary/10 p-4 text-primary">
               <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -484,7 +502,7 @@ export default function PortfolioPage() {
                   {/* Delete */}
                   <div className="relative flex items-center">
                     <button
-                      onClick={() => removePosition(pos.id)}
+                      onClick={() => handleRemovePosition(pos.id)}
                       className="rounded-lg p-1.5 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                       title="Remove position"
                     >
@@ -503,7 +521,7 @@ export default function PortfolioPage() {
         {/* Footer note */}
         {positions.length > 0 && (
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            Your positions are private and linked to your Clerk account · Yahoo Finance prices with ~15 min delay
+            Your positions are safely stored in our cloud database and linked to your Clerk account · Real-time data sync across devices
           </p>
         )}
       </div>
