@@ -7,9 +7,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function getCommunitySummary(symbol: string) {
   try {
-    const comments = await getCommentsBySymbol(symbol);
+    const comments: any[] = await getCommentsBySymbol(symbol);
     
-    if (comments.length < 3) return null; // Only summarize if there's enough discussion
+    console.log(`AI Summary requested for ${symbol}. Comments found: ${comments.length}`);
+
+    if (comments.length < 2) return null; // Reduced to 2 for easier testing
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 

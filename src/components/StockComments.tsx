@@ -47,7 +47,7 @@ export function StockComments({ symbol }: { symbol: string }) {
     }, [fetchComments]);
 
     useEffect(() => {
-        if (comments.length >= 3) {
+        if (comments.length >= 2) {
             getCommunitySummary(symbol).then(setAiSummary);
         } else {
             setAiSummary(null);
