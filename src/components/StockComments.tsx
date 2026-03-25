@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useUser, SignInButton } from "@clerk/nextjs";
 import { getCommentsBySymbol, addComment, deleteComment } from "@/actions/comments-db";
+import { getCommunitySummary } from "@/actions/comments-ai";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare, ThumbsUp, ThumbsDown, Trash2, Loader2, User, Send } from "lucide-react";
+import { MessageSquare, ThumbsUp, ThumbsDown, Trash2, Loader2, User, Send, ShieldCheck, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface Comment {
@@ -17,13 +18,15 @@ interface Comment {
     symbol: string;
     content: string;
     sentiment: "BULLISH" | "BEARISH" | "NEUTRAL";
-    createdAt: Date;
+    createdAt: string | Date;
+    isHolder: boolean;
 }
 
 export function StockComments({ symbol }: { symbol: string }) {
-    const { user, isLoaded: userLoaded } = useUser();
+    const { user } = useUser();
     const [comments, setComments] = useState<Comment[]>([]);
     const [loading, setLoading] = useState(true);
+    const [aiSummary, setAiSummary] = useState<string | null>(null);
     const [content, setContent] = useState("");
     const [sentiment, setSentiment] = useState<"BULLISH" | "BEARISH" | "NEUTRAL">("NEUTRAL");
     const [submitting, setSubmitting] = useState(false);
@@ -42,6 +45,14 @@ export function StockComments({ symbol }: { symbol: string }) {
     useEffect(() => {
         fetchComments();
     }, [fetchComments]);
+
+    useEffect(() => {
+        if (comments.length >= 3) {
+            getCommunitySummary(symbol).then(setAiSummary);
+        } else {
+            setAiSummary(null);
+        }
+    }, [symbol, comments.length]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -104,6 +115,19 @@ export function StockComments({ symbol }: { symbol: string }) {
                 )}
             </CardHeader>
             <CardContent className="space-y-6">
+                {/* AI Summary */}
+                {aiSummary && (
+                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex gap-3 text-sm leading-relaxed backdrop-blur-sm shadow-inner group transition-all duration-500 hover:bg-primary/10">
+                        <div className="shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                        </div>
+                        <p className="text-foreground/80 italic font-medium">
+                            <span className="font-bold text-primary not-italic">Community Pulse: </span>
+                            {aiSummary}
+                        </p>
+                    </div>
+                )}
+
                 {/* Post Form */}
                 <div className="p-4 rounded-xl bg-muted/30 border border-dashed border-border">
                     {user ? (
@@ -189,6 +213,12 @@ export function StockComments({ symbol }: { symbol: string }) {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <span className="font-bold text-sm text-foreground">{comment.userFullName}</span>
+                                            {comment.isHolder && (
+                                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[9px] font-bold text-primary uppercase tracking-tighter shadow-sm">
+                                                    <ShieldCheck className="w-2.5 h-2.5" />
+                                                    Verified Holder
+                                                </span>
+                                            )}
                                             <span className="text-[10px] text-muted-foreground font-medium uppercase px-2 py-0.5 bg-muted rounded-full">
                                                 {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                                             </span>
