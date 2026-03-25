@@ -6,24 +6,21 @@ import { ArrowLeft } from "lucide-react";
 
 export default function HeatmapPage() {
     return (
-        <div className="h-screen bg-background flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between gap-4 p-4 border-b bg-card/50 backdrop-blur-md">
-                <Link href="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground bg-muted/50 px-3 py-1.5 rounded-lg transition-colors border">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Dashboard
-                </Link>
-
-                <header className="flex-1 text-center">
-                    <h1 className="text-xl font-bold tracking-tight">Market Intelligence Heatmap</h1>
-                </header>
-
-                <div className="text-xs font-mono text-muted-foreground hidden md:block">
-                    S&P 500 • REAL-TIME DATA
+        <div className="min-h-screen bg-background p-8">
+            <div className="max-w-7xl mx-auto space-y-8">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b pb-8">
+                    <div>
+                        <h1 className="text-4xl font-bold tracking-tight">Market Heatmap</h1>
+                        <p className="text-muted-foreground mt-1">Visualizing S&P 500 performance in real-time</p>
+                    </div>
+                    <div className="text-xs font-mono text-muted-foreground bg-muted px-3 py-1 rounded-full border">
+                        S&P 500 • REAL-TIME DATA
+                    </div>
                 </div>
-            </div>
 
-            <div className="flex-1 w-full min-h-0">
-                <SP500Heatmap height="100%" />
+                <div className="rounded-xl border bg-card shadow-sm overflow-hidden p-1 h-[70vh]">
+                    <SP500Heatmap height="100%" />
+                </div>
             </div>
         </div>
     );

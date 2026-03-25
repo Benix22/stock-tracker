@@ -109,38 +109,8 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
             <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex flex-col md:flex-row md:items-center gap-6">
                     <div>
-                        <h1 className="text-4xl font-bold tracking-tight">Stock Tracker</h1>
+                        <h1 className="text-4xl font-bold tracking-tight">Market Overview</h1>
                         <p className="text-muted-foreground">Real-time evolution of key assets</p>
-                    </div>
-                    <div className="flex items-center gap-4 md:border-l md:border-border md:pl-6 min-w-[100px]">
-                        {isLoaded ? (
-                            isSignedIn ? (
-                                <div className="flex items-center gap-4">
-                                    <Link 
-                                        href="/portfolio" 
-                                        className="text-sm font-semibold hover:text-primary transition-colors flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 hover:bg-muted"
-                                    >
-                                        <Briefcase className="w-4 h-4" />
-                                        My Portfolio
-                                    </Link>
-                                    <UserButton 
-                                        appearance={{
-                                            elements: {
-                                                userButtonAvatarBox: "w-10 h-10"
-                                            }
-                                        }}
-                                    />
-                                </div>
-                            ) : (
-                                <SignInButton mode="modal">
-                                    <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors cursor-pointer text-sm">
-                                        Sign In
-                                    </button>
-                                </SignInButton>
-                            )
-                        ) : (
-                            <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
-                        )}
                     </div>
                 </div>
 

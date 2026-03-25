@@ -291,13 +291,6 @@ export default function PortfolioPage() {
 
         {/* Header */}
         <div className="flex flex-col gap-4">
-          <Link
-            href="/"
-            className="group flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-fit"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Back to Dashboard
-          </Link>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-6">
               <div>
@@ -307,9 +300,6 @@ export default function PortfolioPage() {
                     ? `Updated: ${lastUpdated.toLocaleTimeString("en-US")} · Auto-refresh every 60s`
                     : "Connecting to secure database…"}
                 </p>
-              </div>
-              <div className="border-l border-border pl-6">
-                <UserButton appearance={{ elements: { userButtonAvatarBox: "w-10 h-10" } }} />
               </div>
             </div>
             <div className="flex gap-3">

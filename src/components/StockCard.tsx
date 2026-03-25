@@ -56,9 +56,14 @@ export function StockCard({ stock }: StockCardProps) {
                                 />
                             </div>
                         )}
-                        <CardTitle className="text-sm font-medium leading-tight truncate">
-                            {stock.name} ({stock.symbol})
-                        </CardTitle>
+                        <div className="overflow-hidden">
+                            <CardTitle className="text-base font-bold leading-none truncate">
+                                {stock.symbol}
+                            </CardTitle>
+                            <p className="text-[10px] text-muted-foreground uppercase mt-0.5 font-medium truncate">
+                                {stock.name}
+                            </p>
+                        </div>
                     </div>
                     {isPositive ? (
                         <ArrowUpIcon className="h-4 w-4 shrink-0 text-green-500" />
