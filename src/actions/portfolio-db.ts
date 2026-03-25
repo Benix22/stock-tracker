@@ -8,31 +8,37 @@ import { revalidatePath } from "next/cache";
 
 export async function getPositions() {
   const { userId } = await auth();
-  console.log("Fetching positions for user:", userId);
-  if (!userId) {
+  const cleanId = userId?.trim();
+  
+  console.log("Fetching positions for user:", cleanId);
+  
+  if (!cleanId) {
     console.log("No userId found, returning empty array.");
     return [];
   }
   
   const results = await db.query.positions.findMany({
-    where: eq(positions.userId, userId),
+    where: eq(positions.userId, cleanId),
     orderBy: (positions, { desc }) => [desc(positions.createdAt)]
   });
-  console.log(`Found ${results.length} positions in DB.`);
+  
+  console.log(`Found ${results.length} positions in DB for ${cleanId}.`);
   return results;
 }
 
 export async function addOrUpdatePosition({ symbol, shares, avgPrice }: { symbol: string, shares: number, avgPrice: number }) {
   const { userId } = await auth();
-  console.log("Adding position for user:", userId);
-  if (!userId) {
+  const cleanId = userId?.trim();
+
+  console.log("Adding position for user:", cleanId);
+  
+  if (!cleanId) {
     console.error("Unauthorized: no userId found");
     throw new Error("Unauthorized");
   }
 
-  console.log("Checking for existing position:", symbol);
   const existing = await db.query.positions.findFirst({
-    where: and(eq(positions.userId, userId), eq(positions.symbol, symbol.toUpperCase()))
+    where: and(eq(positions.userId, cleanId), eq(positions.symbol, symbol.toUpperCase()))
   });
 
   if (existing) {
@@ -46,7 +52,7 @@ export async function addOrUpdatePosition({ symbol, shares, avgPrice }: { symbol
   } else {
     console.log("Inserting new position for:", symbol);
     await db.insert(positions).values({
-      userId,
+      userId: cleanId,
       symbol: symbol.toUpperCase(),
       shares,
       avgPrice,
@@ -58,10 +64,12 @@ export async function addOrUpdatePosition({ symbol, shares, avgPrice }: { symbol
 
 export async function deletePosition(id: string) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  const cleanId = userId?.trim();
+  
+  if (!cleanId) throw new Error("Unauthorized");
 
   await db.delete(positions)
-    .where(and(eq(positions.id, id), eq(positions.userId, userId)));
+    .where(and(eq(positions.id, id), eq(positions.userId, cleanId)));
     
   revalidatePath("/portfolio");
 }
