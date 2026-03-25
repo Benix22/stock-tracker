@@ -45,6 +45,7 @@ export interface StockData {
         recommendationKey?: string;
     };
     logoUrl?: string;
+    currency?: string;
 }
 
 export interface HistoricalDataPoint {
@@ -88,6 +89,7 @@ export async function getStockQuote(symbol: string): Promise<StockData | null> {
             dividendYield: quote.dividendYield,
             eps: quote.epsTrailingTwelveMonths,
             logoUrl: await getStockLogo(symbol),
+            currency: quote.currency || 'USD',
         };
     } catch (error) {
         console.error(`Failed to fetch quote for ${symbol}:`, error);
