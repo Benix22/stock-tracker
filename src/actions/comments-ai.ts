@@ -10,8 +10,9 @@ export async function getCommunitySummary(symbol: string) {
     const comments: any[] = await getCommentsBySymbol(symbol);
     
     console.log(`AI Summary requested for ${symbol}. Comments found: ${comments.length}`);
+    console.log("Comments data sample:", JSON.stringify(comments.slice(0, 1)));
 
-    if (comments.length < 2) return null; // Reduced to 2 for easier testing
+    if (comments.length < 2) return null; 
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 

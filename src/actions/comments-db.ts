@@ -1,36 +1,36 @@
 "use server"
 
 import { db } from "@/db";
-import { comments } from "@/db/schema";
+import { comments, positions } from "@/db/schema";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function getCommentsBySymbol(symbol: string) {
   const cleanSymbol = symbol.toUpperCase();
   
-  // Use raw SQL to include holder status
-  const res = await db.execute(sql`
-    SELECT 
-      c.id, 
-      c.user_id as "userId", 
-      c.user_full_name as "userFullName", 
-      c.user_image_url as "userImageUrl", 
-      c.symbol, 
-      c.content, 
-      c.sentiment, 
-      c.created_at as "createdAt",
-      EXISTS (
-        SELECT 1 FROM positions p 
-        WHERE p.user_id = c.user_id 
-        AND UPPER(p.symbol) = UPPER(c.symbol)
-      ) as "isHolder"
-    FROM comments c
-    WHERE UPPER(c.symbol) = ${cleanSymbol}
-    ORDER BY c.created_at DESC
-  `);
+  const allComments = await db.query.comments.findMany({
+    where: eq(comments.symbol, cleanSymbol),
+    orderBy: [desc(comments.createdAt)]
+  });
 
-  return res.rows;
+  if (allComments.length === 0) return [];
+
+  const userIds = Array.from(new Set(allComments.map(c => c.userId)));
+  
+  const holders = await db.query.positions.findMany({
+    where: and(
+      inArray(positions.userId, userIds),
+      eq(positions.symbol, cleanSymbol)
+    )
+  });
+
+  const holderSet = new Set(holders.map(h => h.userId));
+
+  return allComments.map(c => ({
+    ...c,
+    isHolder: holderSet.has(c.userId)
+  }));
 }
 
 export async function addComment({ symbol, content, sentiment }: { 
