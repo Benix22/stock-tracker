@@ -57,8 +57,11 @@ export function StockCard({ stock }: StockCardProps) {
                             </div>
                         )}
                         <div className="overflow-hidden">
-                            <CardTitle className="text-base font-bold leading-none truncate">
+                            <CardTitle className="text-base font-bold leading-none truncate flex items-center gap-2">
                                 {stock.symbol}
+                                {!stock.symbol.includes('=') && !stock.symbol.includes('^') && !stock.symbol.includes('-') && (
+                                    <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Alpaca Real-time" />
+                                )}
                             </CardTitle>
                             <p className="text-[10px] text-muted-foreground uppercase mt-0.5 font-medium truncate">
                                 {stock.name}

@@ -58,7 +58,7 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
             } catch (error) {
                 console.error("Failed to update quotes", error);
             }
-        }, 5000);
+        }, 2000);
 
         return () => clearInterval(interval);
     }, []);

@@ -142,12 +142,42 @@ export async function getStockHistory(
     }
 }
 
+import { getBatchRealTimeQuotes } from './alpaca';
+
 export async function getBatchStockQuotes(symbols: string[]): Promise<StockData[]> {
     if (!symbols || symbols.length === 0) return [];
 
-    // Yahoo-finance2 quote can typically handle single requests. 
-    // We will use Promise.all which is standard for concurrent internal fetching.
-    const promises = symbols.map(id => getStockQuote(id));
+    let alpacaResults: any[] = [];
+    const hasAlpacaKeys = process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY;
+
+    if (hasAlpacaKeys) {
+        // Only try Alpaca for stocks (avoiding indices or cryptos for now unless we scale)
+        const alpacaSymbols = symbols.filter(s => !s.startsWith('^') && !s.includes('=') && !s.includes('-'));
+        if (alpacaSymbols.length > 0) {
+            alpacaResults = await getBatchRealTimeQuotes(alpacaSymbols);
+        }
+    }
+
+    const alpacaMap = new Map(alpacaResults.map(r => [r.symbol, r]));
+
+    // Fetch from Yahoo for everything not fulfilled by Alpaca or which needs extra info (like name/marketCap)
+    const promises = symbols.map(async (sym) => {
+        const alpacaData = alpacaMap.get(sym.toUpperCase().split('.')[0]);
+        const yahooData = await getStockQuote(sym);
+        
+        if (!yahooData) return null;
+
+        if (alpacaData) {
+            return {
+                ...yahooData,
+                price: alpacaData.price,
+                change: alpacaData.change,
+                changePercent: alpacaData.changePercent,
+            };
+        }
+        return yahooData;
+    });
+
     const results = await Promise.all(promises);
     return results.filter((q): q is StockData => q !== null);
 }
