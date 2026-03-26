@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
-import { LayoutDashboard, Briefcase, Grid3X3, LineChart, User } from "lucide-react";
+import { LayoutDashboard, Briefcase, Grid3X3, LineChart } from "lucide-react";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -14,7 +14,6 @@ export function Navbar() {
     { label: "My Portfolio", href: "/portfolio", icon: <Briefcase className="w-4 h-4" /> },
     { label: "Heatmap", href: "/heatmap", icon: <Grid3X3 className="w-4 h-4" /> },
     { label: "Advanced Chart", href: "/advanced", icon: <LineChart className="w-4 h-4" /> },
-    { label: "Account", href: "/account", icon: <User className="w-4 h-4" /> },
   ];
 
   return (
