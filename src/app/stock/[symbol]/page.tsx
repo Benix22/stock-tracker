@@ -52,8 +52,11 @@ export default async function StockDetailPage({ params }: PageProps) {
                         </div>
                     )}
                     <div>
-                        <h1 className="text-4xl font-bold tracking-tight">
+                        <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
                             {quote?.name || decodedSymbol} ({decodedSymbol})
+                            {!isIndex && !decodedSymbol.includes('=') && !decodedSymbol.includes('-') && (
+                                <span className="flex h-3 w-3 rounded-full bg-emerald-500 animate-pulse border-2 border-background shadow-sm" title="Alpaca Real-time" />
+                            )}
                         </h1>
                         <p className="text-muted-foreground">Real-time intraday values</p>
                     </div>

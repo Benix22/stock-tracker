@@ -210,7 +210,7 @@ export function RealTimeChart({
             fetchData().then(() => setLoading(false));
         }
 
-        const interval = setInterval(fetchData, 5000);
+        const interval = setInterval(fetchData, 2000);
         return () => clearInterval(interval);
     }, [symbol, initialData.length, isCustom, onPriceUpdate]);
 
@@ -221,7 +221,14 @@ export function RealTimeChart({
     if (!displayData || displayData.length === 0) {
         return (
             <Card className="w-full">
-                <CardHeader><CardTitle>{symbol} {isCustom ? 'History' : 'Intraday'}</CardTitle></CardHeader>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        {symbol} {isCustom ? 'History' : 'Intraday'}
+                        {!isCustom && !symbol.includes('=') && !symbol.includes('^') && !symbol.includes('-') && (
+                            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Alpaca Real-time" />
+                        )}
+                    </CardTitle>
+                </CardHeader>
                 <CardContent>No data available</CardContent>
             </Card>
         );
@@ -243,8 +250,8 @@ export function RealTimeChart({
 
     // Add padding
     const domainPadding = (maxVal - minVal) * 0.05; // 5% padding
-    let domainMin = minVal - domainPadding;
-    let domainMax = maxVal + domainPadding;
+    const domainMin = minVal - domainPadding;
+    const domainMax = maxVal + domainPadding;
 
     // If not comparison, standard price polish (e.g. 0.999 logic) can be applied, but this generic logic works too.
 
@@ -277,7 +284,12 @@ export function RealTimeChart({
             <CardHeader className="flex flex-row items-center justify-between">
                 <div className="space-y-1 w-full">
                     <CardTitle className="flex justify-between items-center">
-                        <span>{symbol} {isCustom ? 'History' : `Today (${lastUpdated.toLocaleTimeString()})`}</span>
+                        <div className="flex items-center gap-2">
+                            <span>{symbol} {isCustom ? 'History' : `Today (${lastUpdated.toLocaleTimeString()})`}</span>
+                            {!isCustom && !symbol.includes('=') && !symbol.includes('^') && !symbol.includes('-') && (
+                                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Alpaca Real-time" />
+                            )}
+                        </div>
                         {isComparisonMode && (
                             <div className="flex items-center gap-4 text-sm font-normal">
                                 <span style={{ color: color }}>● {symbol}</span>

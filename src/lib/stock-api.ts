@@ -69,6 +69,8 @@ export interface StockProfile {
     description?: string;
 }
 
+import { getRealTimeQuote, getBatchRealTimeQuotes } from './alpaca';
+
 export async function getStockQuote(symbol: string): Promise<StockData | null> {
     try {
         const quote = await yahooFinance.quote(symbol);
@@ -76,7 +78,8 @@ export async function getStockQuote(symbol: string): Promise<StockData | null> {
             console.warn(`No quote found for ${symbol}`);
             return null;
         }
-        return {
+
+        const data: StockData = {
             symbol: quote.symbol,
             price: quote.regularMarketPrice ?? 0,
             change: quote.regularMarketChange ?? 0,
@@ -91,6 +94,18 @@ export async function getStockQuote(symbol: string): Promise<StockData | null> {
             logoUrl: await getStockLogo(symbol),
             currency: quote.currency || 'USD',
         };
+
+        const hasAlpacaKeys = process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY;
+        if (hasAlpacaKeys && !symbol.startsWith('^') && !symbol.includes('=') && !symbol.includes('-')) {
+            const alpacaData = await getRealTimeQuote(symbol);
+            if (alpacaData) {
+                data.price = alpacaData.price;
+                data.change = alpacaData.change;
+                data.changePercent = alpacaData.changePercent;
+            }
+        }
+
+        return data;
     } catch (error) {
         console.error(`Failed to fetch quote for ${symbol}:`, error);
         return null;
@@ -141,8 +156,6 @@ export async function getStockHistory(
         return [];
     }
 }
-
-import { getBatchRealTimeQuotes } from './alpaca';
 
 export async function getBatchStockQuotes(symbols: string[]): Promise<StockData[]> {
     if (!symbols || symbols.length === 0) return [];
@@ -297,7 +310,16 @@ export async function getStockPerformance(symbol: string): Promise<StockPerforma
 
         if (latest.close === null || latest.close === undefined) return null; 
 
-        const currentPrice = latest.close as number;
+        let currentPrice = latest.close as number;
+
+        const hasAlpacaKeys = process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY;
+        if (hasAlpacaKeys && !symbol.startsWith('^') && !symbol.includes('=') && !symbol.includes('-')) {
+            const alpacaData = await getRealTimeQuote(symbol);
+            if (alpacaData) {
+                currentPrice = alpacaData.price;
+            }
+        }
+
         const latestDate = new Date(latest.date);
 
         const findQuoteAgo = (daysAgo: number) => {
