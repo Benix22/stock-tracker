@@ -84,8 +84,18 @@ export function StockComments({ symbol }: { symbol: string }) {
         }
     };
 
-    const bullishCount = comments.filter(c => c.sentiment === "BULLISH").length;
-    const bearishCount = comments.filter(c => c.sentiment === "BEARISH").length;
+    let bullishCount = 0;
+    let bearishCount = 0;
+    const userSentiments = new Set<string>();
+
+    for (const comment of comments) {
+        if (!userSentiments.has(comment.userId)) {
+            userSentiments.add(comment.userId);
+            if (comment.sentiment === "BULLISH") bullishCount++;
+            if (comment.sentiment === "BEARISH") bearishCount++;
+        }
+    }
+
     const totalSentiment = bullishCount + bearishCount;
     const bullishPct = totalSentiment > 0 ? (bullishCount / totalSentiment) * 100 : 50;
 
