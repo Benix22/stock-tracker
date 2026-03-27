@@ -138,14 +138,28 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                 const messages = JSON.parse(event.data);
                 for (const msg of messages) {
                     if (msg.T === 'success' && msg.msg === 'authenticated') {
-                        // 2. Subscribe to bars or trades
-                        // We use bars (minute) to update the last candle
+                        // 2. Subscribe to trades AND bars
+                        // 'trades' provide second-by-second updates
+                        // 'bars' provide consolidated minute data
                         ws?.send(JSON.stringify({
                             action: 'subscribe',
+                            trades: [symbol.toUpperCase()],
                             bars: [symbol.toUpperCase()]
                         }));
+                    } else if (msg.T === 't' && msg.S === symbol.toUpperCase()) {
+                        // Real-time TRADE received (Every single transaction)
+                        if (candleSeriesRef.current) {
+                            // Update the CURRENT candle with the latest price from the trade
+                            // Using the trade price (msg.p) to update open/high/low/close of the current minute
+                            candleSeriesRef.current.update({
+                                time: Math.floor(new Date(msg.t).getTime() / 1000) as Time,
+                                close: msg.p,
+                                // Lightweight-charts internally handles updating high/low 
+                                // if the price is outside current candle range
+                            });
+                        }
                     } else if (msg.T === 'b' && msg.S === symbol.toUpperCase()) {
-                        // Real-time bar received
+                        // Consolidate the BAR at the end of the minute
                         if (candleSeriesRef.current && volumeSeriesRef.current) {
                             const time = Math.floor(new Date(msg.t).getTime() / 1000) as Time;
                             
