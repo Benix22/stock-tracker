@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickData, HistogramData, Time, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
+import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickData, HistogramData, Time, CandlestickSeries, HistogramSeries, LineSeries } from 'lightweight-charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Maximize2, Settings2, BarChart3, TrendingUp, Calendar, Eye, EyeOff, Activity } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -322,7 +322,7 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
             },
         });
 
-        const candleSeries = chart.addCandlestickSeries({
+        const candleSeries = chart.addSeries(CandlestickSeries, {
             upColor: '#22c55e',
             downColor: '#ef4444',
             borderVisible: false,
@@ -331,14 +331,14 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
         });
 
         // SMA Series
-        const sma50Series = chart.addLineSeries({
+        const sma50Series = chart.addSeries(LineSeries, {
             color: '#2563eb',
             lineWidth: 2,
             title: 'SMA 50',
             visible: showSMA50,
         });
 
-        const sma200Series = chart.addLineSeries({
+        const sma200Series = chart.addSeries(LineSeries, {
             color: '#f59e0b',
             lineWidth: 2,
             title: 'SMA 200',
@@ -346,7 +346,7 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
         });
 
         // Volume Series (Bottom 20% of main pane)
-        const volumeSeries = chart.addHistogramSeries({
+        const volumeSeries = chart.addSeries(HistogramSeries, {
             color: '#2563eb',
             priceFormat: { type: 'volume' },
             priceScaleId: '', 
@@ -357,7 +357,7 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
         });
 
         // RSI Series (Dedicated Pane)
-        const rsiSeries = chart.addLineSeries({
+        const rsiSeries = chart.addSeries(LineSeries, {
             color: '#8b5cf6',
             lineWidth: 2,
             priceScaleId: 'rsi',
@@ -368,23 +368,22 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
         rsiSeries.priceScale().applyOptions({
             scaleMargins: { top: 0.75, bottom: 0.1 },
             autoScale: false,
-            // Draw RSI 30/70 levels
         });
 
         // MACD Series (Dedicated Pane)
-        const macdSeries = chart.addLineSeries({
+        const macdSeries = chart.addSeries(LineSeries, {
             color: '#2563eb',
             lineWidth: 1,
             priceScaleId: 'macd',
             visible: showMACD,
         });
-        const macdSignalSeries = chart.addLineSeries({
+        const macdSignalSeries = chart.addSeries(LineSeries, {
             color: '#ef4444',
             lineWidth: 1,
             priceScaleId: 'macd',
             visible: showMACD,
         });
-        const macdHistSeries = chart.addHistogramSeries({
+        const macdHistSeries = chart.addSeries(HistogramSeries, {
             priceScaleId: 'macd',
             visible: showMACD,
         });
@@ -497,7 +496,11 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                     <div className="flex gap-2">
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" size="icon" className="h-10 w-10">
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    className="h-10 w-10 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary shadow-[0_0_15px_rgba(37,99,235,0.1)]"
+                                >
                                     <Activity className="h-4 w-4" />
                                 </Button>
                             </PopoverTrigger>
