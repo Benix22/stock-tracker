@@ -27,6 +27,11 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
     const [loading, setLoading] = useState(initialData.length === 0);
     const [range, setRange] = useState<'1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'>('1M');
     
+    // Live override for header stats
+    const [livePrice, setLivePrice] = useState<number | null>(null);
+    const [liveChange, setLiveChange] = useState<number | null>(null);
+    const [livePercent, setLivePercent] = useState<number | null>(null);
+
     // UI Toggles for Indicators
     const [showSMA50, setShowSMA50] = useState(true);
     const [showSMA200, setShowSMA200] = useState(false);
@@ -119,14 +124,14 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
             const config = await getAlpacaConfig();
             if (!config.keyId || !config.secretKey) return;
 
-            const wsUrl = config.paper 
-                ? 'wss://stream.data.alpaca.markets/v2/iex' 
-                : 'wss://stream.data.alpaca.markets/v2/iex'; // Usamos IEX por defecto para free/paper
+            // CRITICAL: For free accounts, use ONLY the IEX URL
+            const wsUrl = 'wss://stream.data.alpaca.markets/v2/iex';
 
+            console.log(`[WebSocket] Connecting to Alpaca IEX for ${symbol}...`);
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                // 1. Authenticate
+                console.log('[WebSocket] Connection established. Authenticating...');
                 ws?.send(JSON.stringify({
                     action: 'auth',
                     key: config.keyId,
@@ -138,22 +143,21 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                 const messages = JSON.parse(event.data);
                 for (const msg of messages) {
                     if (msg.T === 'success' && msg.msg === 'authenticated') {
-                        // 2. Subscribe to trades AND bars
-                        // 'trades' provide second-by-second updates
-                        // 'bars' provide consolidated minute data
+                        console.log(`[WebSocket] Authenticated. Subscribing to trades/bars for ${symbol}`);
                         ws?.send(JSON.stringify({
                             action: 'subscribe',
                             trades: [symbol.toUpperCase()],
                             bars: [symbol.toUpperCase()]
                         }));
                     } else if (msg.T === 't' && msg.S === symbol.toUpperCase()) {
-                        // Real-time TRADE received (Every single transaction)
+                        // Real-time TRADE received
+                        console.log(`[WebSocket] TRADE: ${symbol} @ $${msg.p}`);
+                        setLivePrice(msg.p);
+                        
+                        // Update Chart
                         if (candleSeriesRef.current) {
-                            // !!! FIX: Normalize to the START of the minute
-                            // Alpaca bars (historical) are indexed at the start of the minute.
-                            // If we use the exact trade timestamp, it creates a new "invalid" point in X axis.
                             const tradeDate = new Date(msg.t);
-                            tradeDate.setSeconds(0, 0); // Ground the trade to the minute candle
+                            tradeDate.setSeconds(0, 0); 
                             const minuteTimestamp = Math.floor(tradeDate.getTime() / 1000) as Time;
 
                             candleSeriesRef.current.update({
@@ -162,10 +166,11 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                             });
                         }
                     } else if (msg.T === 'b' && msg.S === symbol.toUpperCase()) {
+                        console.log(`[WebSocket] BAR closed for ${symbol} @ $${msg.c}`);
                         // Consolidate the BAR at the end of the minute
                         if (candleSeriesRef.current && volumeSeriesRef.current) {
                             const barDate = new Date(msg.t);
-                            barDate.setSeconds(0, 0); // Ensure alignment
+                            barDate.setSeconds(0, 0); 
                             const minuteTimestamp = Math.floor(barDate.getTime() / 1000) as Time;
                             
                             candleSeriesRef.current.update({
@@ -182,6 +187,8 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                                 color: msg.c >= msg.o ? 'rgba(34, 197, 94, 0.4)' : 'rgba(239, 68, 68, 0.4)'
                             });
                         }
+                    } else if (msg.T === 'error') {
+                        console.error('[WebSocket] Alpaca Error:', msg);
                     }
                 }
             };
@@ -492,10 +499,10 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                         {stats && (
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="text-3xl font-bold font-mono">
-                                    ${stats.latest.close.toFixed(2)}
+                                    ${(livePrice ?? stats.latest.close).toFixed(2)}
                                 </span>
-                                <span className={`flex items-center text-sm font-semibold ${stats.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {stats.change >= 0 ? '+' : ''}{stats.change.toFixed(2)} ({stats.percent.toFixed(2)}%)
+                                <span className={`flex items-center text-sm font-semibold ${(liveChange ?? stats.change) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {(liveChange ?? stats.change) >= 0 ? '+' : ''}{(liveChange ?? stats.change).toFixed(2)} ({(livePercent ?? stats.percent).toFixed(2)}%)
                                 </span>
                             </div>
                         )}
@@ -584,7 +591,7 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
             <div className="px-6 py-3 border-t bg-muted/30 flex items-center justify-between text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em]">
                 <div className="flex gap-6">
                     <span className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        <span className="w-2 h-2 rounded-full bg-green-400 animate-[ping_2s_ease-in-out_infinite] shadow-[0_0_8px_rgba(74,222,128,0.5)]" />
                         Live Feed Active
                     </span>
                     <span>Exchange: {symbol.includes('.') ? symbol.split('.')[1] || 'NYSE' : 'NASDAQ'}</span>
