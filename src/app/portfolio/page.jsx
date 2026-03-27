@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import { getBatchStockQuotes } from "@/actions/stock";
-import { useAuth, UserButton } from "@clerk/nextjs";
 import { getPositions, addOrUpdatePosition, deletePosition } from "@/actions/portfolio-db";
+import { getPortfolioSummary } from "@/actions/portfolio-ai";
+import { Brain, TrendingUp, ShieldCheck, Target, Sparkles, RefreshCw } from "lucide-react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const fmtCurrency = (n, currency = "USD") =>
@@ -61,7 +60,7 @@ function AddPositionModal({ onAdd, onClose, existingTickers, loading: submitting
     if (!t) return setError("Enter a ticker (e.g. AAPL)");
     if (!s || s <= 0) return setError("Invalid share count");
     if (!p || p <= 0) return setError("Invalid purchase price");
-    
+
     try {
       await onAdd({ ticker: t, shares: s, avgPrice: p });
       onClose();
@@ -157,7 +156,11 @@ export default function PortfolioPage() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [sortKey, setSortKey] = useState("value"); // "value" | "pl" | "plPct" | "ticker"
-
+  
+  // AI Summary State
+  const [aiSummary, setAiSummary] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
   // Fetch from DB
   const refreshHistory = useCallback(async () => {
     if (!userId) return;
@@ -180,8 +183,8 @@ export default function PortfolioPage() {
   // Fetch quotes whenever positions change
   const refreshQuotes = useCallback(async () => {
     if (positions.length === 0) {
-        setQuotesLoading(false);
-        return;
+      setQuotesLoading(false);
+      return;
     }
     setQuotesLoading(true);
     try {
@@ -208,9 +211,9 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     if (positions.length > 0) {
-        refreshQuotes();
-        const interval = setInterval(refreshQuotes, 60_000); // auto-refresh every minute
-        return () => clearInterval(interval);
+      refreshQuotes();
+      const interval = setInterval(refreshQuotes, 60_000); // auto-refresh every minute
+      return () => clearInterval(interval);
     }
   }, [refreshQuotes, positions.length]);
 
@@ -229,8 +232,27 @@ export default function PortfolioPage() {
     try {
       setPositions(prev => prev.filter(p => p.id !== id)); // Optimistic UI
       await deletePosition(id);
+      setAiSummary(null); // Force refresh AI if portfolio changes
     } catch (e) {
       await refreshHistory(); // Rollback
+    }
+  };
+
+  const generateAISummary = async () => {
+    if (enriched.length === 0) return;
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const result = await getPortfolioSummary(enriched);
+      if (result) {
+        setAiSummary(result);
+      } else {
+        setAiError("No se pudo generar el análisis en este momento.");
+      }
+    } catch (err) {
+      setAiError("Error de conexión con la IA.");
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -267,12 +289,12 @@ export default function PortfolioPage() {
   // Loading state
   if (loading) {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-            <div className="flex flex-col items-center gap-4">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                <p className="text-muted-foreground font-medium">Securing your portfolio...</p>
-            </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <p className="text-muted-foreground font-medium">Securing your portfolio...</p>
         </div>
+      </div>
     )
   }
 
@@ -508,10 +530,138 @@ export default function PortfolioPage() {
           </div>
         )}
 
+        {/* Investment Co-pilot Section */}
+        {positions.length > 0 && (
+          <div className="mt-16 space-y-8 animate-in fade-in duration-1000">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6 border-white/10">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-primary to-blue-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                  <div className="relative p-3 bg-card border border-white/10 rounded-xl">
+                    <Brain className="w-8 h-8 text-primary" />
+                  </div>
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black tracking-tight flex items-center gap-2">
+                    Investment Co-pilot
+                    <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Pro</span>
+                  </h2>
+                  <p className="text-sm text-muted-foreground font-medium">Análisis de mercado curado y adaptado a tu exposición real</p>
+                </div>
+              </div>
+              <button
+                onClick={generateAISummary}
+                disabled={aiLoading}
+                className="group flex items-center gap-3 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all duration-300 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${aiLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-700"}`} />
+                {aiLoading ? "Consultando Mercado..." : aiSummary ? "Recalcular Estrategia" : "Activar Co-pilot"}
+              </button>
+            </div>
+
+            {aiLoading && (
+              <div className="py-20 flex flex-col items-center justify-center space-y-6 bg-card/50 rounded-3xl border border-dashed border-white/10 animate-pulse">
+                <div className="relative">
+                  <div className="w-20 h-20 border-t-4 border-primary rounded-full animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-primary animate-bounce" />
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold tracking-tight">Curando información de mercado...</p>
+                  <p className="text-sm text-muted-foreground mt-1">Filtrando el ruido para darte solo lo que importa.</p>
+                </div>
+              </div>
+            )}
+
+            {aiError && (
+              <div className="p-6 rounded-2xl bg-destructive/5 border border-destructive/20 text-destructive text-center font-medium">
+                {aiError}
+              </div>
+            )}
+
+            {aiSummary && !aiLoading && (
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-in slide-in-from-bottom-8 duration-1000">
+                
+                {/* Main Insight Widget - The "Executive Pitch" */}
+                <div className="md:col-span-8 p-8 rounded-3xl bg-gradient-to-br from-card to-card/50 border border-white/10 shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-12 opacity-[0.03] rotate-12 pointer-events-none">
+                    <Brain className="w-64 h-64" />
+                  </div>
+                  
+                  <div className="relative flex flex-col h-full">
+                    <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-[0.2em] mb-4">
+                      <TrendingUp className="w-4 h-4" />
+                      Estado de tu Exposición
+                    </div>
+                    <h3 className="text-2xl font-bold mb-6 leading-tight">
+                      Tu resumen de mercado hoy:
+                    </h3>
+                    <p className="text-lg text-muted-foreground leading-relaxed italic border-l-4 border-primary/40 pl-6 py-2">
+                       {aiSummary.summary}
+                    </p>
+                    
+                    <div className="mt-auto pt-8 flex flex-wrap gap-4">
+                      <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-xl text-xs font-bold border border-emerald-500/20">
+                        <Target className="w-4 h-4" />
+                        {aiSummary.diversification.split('.')[0]}
+                      </div>
+                      <div className="flex items-center gap-2 bg-rose-500/10 text-rose-400 px-4 py-2 rounded-xl text-xs font-bold border border-rose-500/20">
+                        <ShieldCheck className="w-4 h-4" />
+                        Riesgo: {aiSummary.risk.split('.')[0]}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Co-pilot Strategic Advice Widget */}
+                <div className="md:col-span-4 p-8 rounded-3xl bg-primary text-primary-foreground shadow-[0_20px_50px_rgba(37,99,235,0.3)] flex flex-col group transition-transform hover:-translate-y-1">
+                  <div className="flex items-center justify-between mb-8">
+                    <Sparkles className="w-8 h-8 opacity-50" />
+                    <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter">Acción Sugerida</span>
+                  </div>
+                  <h3 className="text-2xl font-black mb-6 leading-none">Consejos de Co-pilot</h3>
+                  
+                  <div className="space-y-4 flex-1">
+                    <p className="text-primary-foreground/90 font-medium leading-relaxed">
+                      {aiSummary.opportunities}
+                    </p>
+                  </div>
+                  
+                  <div className="mt-8 pt-6 border-t border-white/10 text-[10px] font-bold opacity-60 uppercase tracking-widest">
+                    Basado en noticias sectoriales y tu Beta actual
+                  </div>
+                </div>
+
+                {/* Secondary widgets */}
+                <div className="md:col-span-6 p-6 rounded-2xl bg-card border border-white/5 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <Target className="w-4 h-4 text-emerald-500" />
+                    Análisis de Diversificación
+                  </h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {aiSummary.diversification}
+                  </p>
+                </div>
+
+                <div className="md:col-span-6 p-6 rounded-2xl bg-card border border-white/5 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-rose-500" />
+                    Evaluación de Riesgos Detallada
+                  </h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {aiSummary.risk}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Footer note */}
         {positions.length > 0 && (
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            Your positions are safely stored in our cloud database and linked to your Clerk account · Real-time data sync across devices
+          <p className="mt-12 text-center text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold py-12 opacity-50 border-t border-white/5">
+            Investment Co-pilot · Inteligencia aplicada al mercado de valores
           </p>
         )}
       </div>
