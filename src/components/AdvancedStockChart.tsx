@@ -3,7 +3,10 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickData, HistogramData, Time, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Maximize2, Settings2, BarChart3, TrendingUp, Calendar } from 'lucide-react';
+import { Loader2, Maximize2, Settings2, BarChart3, TrendingUp, Calendar, Eye, EyeOff, Activity } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { HistoricalDataPoint } from '@/lib/stock-api';
 import { getStockHistoryWithRange, getAlpacaHistoricalBars, getAlpacaConfig } from '@/actions/stock';
 import { Button } from '@/components/ui/button';
@@ -23,6 +26,87 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
     const [data, setData] = useState<HistoricalDataPoint[]>(initialData);
     const [loading, setLoading] = useState(initialData.length === 0);
     const [range, setRange] = useState<'1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'>('1M');
+    
+    // UI Toggles for Indicators
+    const [showSMA50, setShowSMA50] = useState(true);
+    const [showSMA200, setShowSMA200] = useState(false);
+    const [showRSI, setShowRSI] = useState(true);
+    const [showMACD, setShowMACD] = useState(false);
+
+    // Refs for Indicator Series
+    const sma50SeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+    const sma200SeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+    const rsiSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+    const macdSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+    const macdSignalSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+    const macdHistSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+
+    // Helper to calculate Indicators
+    const indicators = useMemo(() => {
+        if (data.length < 50) return { sma50: [], sma200: [], rsi: [], macd: [] };
+
+        const calculateSMA = (period: number) => {
+            return data.map((_, idx) => {
+                if (idx < period - 1) return null;
+                const slice = data.slice(idx - period + 1, idx + 1);
+                const sum = slice.reduce((acc, d) => acc + d.close, 0);
+                return { time: data[idx].date, value: sum / period };
+            }).filter(d => d !== null);
+        };
+
+        const calculateRSI = (period: number = 14) => {
+            let gains = 0, losses = 0;
+            return data.map((d, idx) => {
+                if (idx === 0) return null;
+                const diff = d.close - data[idx - 1].close;
+                const gain = diff > 0 ? diff : 0;
+                const loss = diff < 0 ? -diff : 0;
+
+                if (idx <= period) {
+                    gains += gain;
+                    losses += loss;
+                    if (idx < period) return null;
+                } else {
+                    gains = (gains * (period - 1) + gain) / period;
+                    losses = (losses * (period - 1) + loss) / period;
+                }
+
+                const rs = gains / (losses || 1);
+                return { time: d.date, value: 100 - (100 / (1 + rs)) };
+            }).filter(d => d !== null);
+        };
+
+        const calculateMACD = () => {
+            const ema = (period: number, prices: number[]) => {
+                const k = 2 / (period + 1);
+                const results = [prices[0]];
+                for (let i = 1; i < prices.length; i++) {
+                    results.push(prices[i] * k + results[i - 1] * (1 - k));
+                }
+                return results;
+            };
+
+            const closes = data.map(d => d.close);
+            const ema12 = ema(12, closes);
+            const ema26 = ema(26, closes);
+            const macdLine = ema12.map((v, i) => v - ema26[i]);
+            const signalLine = ema(9, macdLine);
+            
+            return data.map((d, i) => ({
+                time: d.date,
+                macd: macdLine[i],
+                signal: signalLine[i],
+                hist: macdLine[i] - signalLine[i]
+            }));
+        };
+
+        return {
+            sma50: calculateSMA(50),
+            sma200: calculateSMA(200),
+            rsi: calculateRSI(14),
+            macd: calculateMACD()
+        };
+    }, [data]);
 
     // WebSocket Logic for Real-time Updates
     useEffect(() => {
@@ -219,19 +303,26 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
             height: chartContainerRef.current.clientHeight,
         });
 
+        // Calculate heights for panes
+        const rsiPaneTop = 0.7;
+        const rsiPaneHeight = 0.15;
+        const macdPaneTop = 0.85;
+        const macdPaneHeight = 0.15;
+
         // Dark mode adjustment
         const isDark = document.documentElement.classList.contains('dark');
-        if (isDark) {
-            chart.applyOptions({
-                layout: { textColor: '#9ca3af' },
-                grid: {
-                    vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
-                    horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
-                },
-            });
-        }
+        const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+        const textColor = isDark ? '#9ca3af' : '#1f2937';
 
-        const candleSeries = chart.addSeries(CandlestickSeries, {
+        chart.applyOptions({
+            layout: { textColor },
+            grid: {
+                vertLines: { color: gridColor },
+                horzLines: { color: gridColor },
+            },
+        });
+
+        const candleSeries = chart.addCandlestickSeries({
             upColor: '#22c55e',
             downColor: '#ef4444',
             borderVisible: false,
@@ -239,31 +330,78 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
             wickDownColor: '#ef4444',
         });
 
-        const volumeSeries = chart.addSeries(HistogramSeries, {
+        // SMA Series
+        const sma50Series = chart.addLineSeries({
             color: '#2563eb',
-            priceFormat: {
-                type: 'volume',
-            },
+            lineWidth: 2,
+            title: 'SMA 50',
+            visible: showSMA50,
+        });
+
+        const sma200Series = chart.addLineSeries({
+            color: '#f59e0b',
+            lineWidth: 2,
+            title: 'SMA 200',
+            visible: showSMA200,
+        });
+
+        // Volume Series (Bottom 20% of main pane)
+        const volumeSeries = chart.addHistogramSeries({
+            color: '#2563eb',
+            priceFormat: { type: 'volume' },
             priceScaleId: '', 
         });
 
         volumeSeries.priceScale().applyOptions({
-            scaleMargins: {
-                top: 0.8,
-                bottom: 0,
-            },
+            scaleMargins: { top: 0.8, bottom: 0 },
+        });
+
+        // RSI Series (Dedicated Pane)
+        const rsiSeries = chart.addLineSeries({
+            color: '#8b5cf6',
+            lineWidth: 2,
+            priceScaleId: 'rsi',
+            title: 'RSI (14)',
+            visible: showRSI,
+        });
+
+        rsiSeries.priceScale().applyOptions({
+            scaleMargins: { top: 0.75, bottom: 0.1 },
+            autoScale: false,
+            // Draw RSI 30/70 levels
+        });
+
+        // MACD Series (Dedicated Pane)
+        const macdSeries = chart.addLineSeries({
+            color: '#2563eb',
+            lineWidth: 1,
+            priceScaleId: 'macd',
+            visible: showMACD,
+        });
+        const macdSignalSeries = chart.addLineSeries({
+            color: '#ef4444',
+            lineWidth: 1,
+            priceScaleId: 'macd',
+            visible: showMACD,
+        });
+        const macdHistSeries = chart.addHistogramSeries({
+            priceScaleId: 'macd',
+            visible: showMACD,
+        });
+
+        macdSeries.priceScale().applyOptions({
+            scaleMargins: { top: 0.85, bottom: 0.05 },
         });
 
         // Format data properly for lightweight-charts
         const formatTime = (dateStr: string) => {
             if (dateStr.length > 10) {
-                // Return unix timestamp in seconds for intraday
                 return Math.floor(new Date(dateStr).getTime() / 1000) as Time;
             }
             return dateStr as Time;
         };
 
-        const candleData: CandlestickData[] = data.map(d => ({
+        const convertedCandleData = data.map(d => ({
             time: formatTime(d.date),
             open: d.open,
             high: d.high,
@@ -271,18 +409,37 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
             close: d.close,
         }));
 
-        const volumeData: HistogramData[] = data.map(d => ({
+        const convertedVolumeData = data.map(d => ({
             time: formatTime(d.date),
             value: d.volume || 0,
             color: d.close >= d.open ? 'rgba(34, 197, 94, 0.4)' : 'rgba(239, 68, 68, 0.4)',
         }));
 
-        candleSeries.setData(candleData);
-        volumeSeries.setData(volumeData);
+        candleSeries.setData(convertedCandleData);
+        volumeSeries.setData(convertedVolumeData);
+        
+        // Set Indicator Data
+        sma50Series.setData(indicators.sma50.map(d => ({ time: formatTime(d.time), value: d.value })));
+        sma200Series.setData(indicators.sma200.map(d => ({ time: formatTime(d.time), value: d.value })));
+        rsiSeries.setData(indicators.rsi.map(d => ({ time: formatTime(d.time), value: d.value })));
+        
+        macdSeries.setData(indicators.macd.map(d => ({ time: formatTime(d.time), value: d.macd })));
+        macdSignalSeries.setData(indicators.macd.map(d => ({ time: formatTime(d.time), value: d.signal })));
+        macdHistSeries.setData(indicators.macd.map(d => ({ 
+            time: formatTime(d.time), 
+            value: d.hist,
+            color: d.hist >= 0 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)'
+        })));
 
         chartRef.current = chart;
         candleSeriesRef.current = candleSeries as any;
         volumeSeriesRef.current = volumeSeries as any;
+        sma50SeriesRef.current = sma50Series;
+        sma200SeriesRef.current = sma200Series;
+        rsiSeriesRef.current = rsiSeries;
+        macdSeriesRef.current = macdSeries;
+        macdSignalSeriesRef.current = macdSignalSeries;
+        macdHistSeriesRef.current = macdHistSeries;
 
         window.addEventListener('resize', handleResize);
         chart.timeScale().fitContent();
@@ -338,9 +495,37 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                         </TabsList>
                     </Tabs>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="icon" className="h-10 w-10">
-                            <Settings2 className="h-4 w-4" />
-                        </Button>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="icon" className="h-10 w-10">
+                                    <Activity className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-56 p-4">
+                                <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                    <Settings2 className="w-3.5 h-3.5" />
+                                    Indicators
+                                </h3>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="sma50" className="text-xs font-medium cursor-pointer">SMA 50 (Trend)</Label>
+                                        <Checkbox id="sma50" checked={showSMA50} onCheckedChange={(v) => setShowSMA50(!!v)} />
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="sma200" className="text-xs font-medium cursor-pointer">SMA 200 (Long Term)</Label>
+                                        <Checkbox id="sma200" checked={showSMA200} onCheckedChange={(v) => setShowSMA200(!!v)} />
+                                    </div>
+                                    <div className="flex items-center justify-between border-t pt-2">
+                                        <Label htmlFor="rsi" className="text-xs font-medium cursor-pointer text-violet-500">RSI (Oversold/Bought)</Label>
+                                        <Checkbox id="rsi" checked={showRSI} onCheckedChange={(v) => setShowRSI(!!v)} />
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="macd" className="text-xs font-medium cursor-pointer text-blue-500">MACD (Momentum)</Label>
+                                        <Checkbox id="macd" checked={showMACD} onCheckedChange={(v) => setShowMACD(!!v)} />
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                         <Button variant="outline" size="icon" className="h-10 w-10">
                             <Maximize2 className="h-4 w-4" />
                         </Button>
