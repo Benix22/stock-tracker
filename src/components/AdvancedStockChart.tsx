@@ -149,22 +149,27 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                     } else if (msg.T === 't' && msg.S === symbol.toUpperCase()) {
                         // Real-time TRADE received (Every single transaction)
                         if (candleSeriesRef.current) {
-                            // Update the CURRENT candle with the latest price from the trade
-                            // Using the trade price (msg.p) to update open/high/low/close of the current minute
+                            // !!! FIX: Normalize to the START of the minute
+                            // Alpaca bars (historical) are indexed at the start of the minute.
+                            // If we use the exact trade timestamp, it creates a new "invalid" point in X axis.
+                            const tradeDate = new Date(msg.t);
+                            tradeDate.setSeconds(0, 0); // Ground the trade to the minute candle
+                            const minuteTimestamp = Math.floor(tradeDate.getTime() / 1000) as Time;
+
                             candleSeriesRef.current.update({
-                                time: Math.floor(new Date(msg.t).getTime() / 1000) as Time,
+                                time: minuteTimestamp,
                                 close: msg.p,
-                                // Lightweight-charts internally handles updating high/low 
-                                // if the price is outside current candle range
                             });
                         }
                     } else if (msg.T === 'b' && msg.S === symbol.toUpperCase()) {
                         // Consolidate the BAR at the end of the minute
                         if (candleSeriesRef.current && volumeSeriesRef.current) {
-                            const time = Math.floor(new Date(msg.t).getTime() / 1000) as Time;
+                            const barDate = new Date(msg.t);
+                            barDate.setSeconds(0, 0); // Ensure alignment
+                            const minuteTimestamp = Math.floor(barDate.getTime() / 1000) as Time;
                             
                             candleSeriesRef.current.update({
-                                time,
+                                time: minuteTimestamp,
                                 open: msg.o,
                                 high: msg.h,
                                 low: msg.l,
@@ -172,7 +177,7 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                             });
 
                             volumeSeriesRef.current.update({
-                                time,
+                                time: minuteTimestamp,
                                 value: msg.v,
                                 color: msg.c >= msg.o ? 'rgba(34, 197, 94, 0.4)' : 'rgba(239, 68, 68, 0.4)'
                             });
