@@ -5,7 +5,7 @@ import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickData, Histogr
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Maximize2, Settings2, BarChart3, TrendingUp, Calendar } from 'lucide-react';
 import { HistoricalDataPoint } from '@/lib/stock-api';
-import { getStockHistoryWithRange } from '@/actions/stock';
+import { getStockHistoryWithRange, getAlpacaHistoricalBars } from '@/actions/stock';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -22,28 +22,58 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
 
     const [data, setData] = useState<HistoricalDataPoint[]>(initialData);
     const [loading, setLoading] = useState(initialData.length === 0);
-    const [range, setRange] = useState<'1M' | '3M' | '6M' | '1Y' | '5Y' | 'ALL'>('1Y');
+    const [range, setRange] = useState<'1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'>('1M');
 
     // Fetch data when symbol or range changes
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const to = new Date().toISOString().split('T')[0];
+                const to = new Date().toISOString();
                 const fromDate = new Date();
+                let timeframe = '1Day';
                 
                 switch (range) {
-                    case '1M': fromDate.setMonth(fromDate.getMonth() - 1); break;
-                    case '3M': fromDate.setMonth(fromDate.getMonth() - 3); break;
-                    case '6M': fromDate.setMonth(fromDate.getMonth() - 6); break;
-                    case '1Y': fromDate.setFullYear(fromDate.getFullYear() - 1); break;
-                    case '5Y': fromDate.setFullYear(fromDate.getFullYear() - 5); break;
-                    case 'ALL': fromDate.setFullYear(fromDate.getFullYear() - 20); break;
+                    case '1D': 
+                        fromDate.setDate(fromDate.getDate() - 1); 
+                        timeframe = '1Min';
+                        break;
+                    case '1W': 
+                        fromDate.setDate(fromDate.getDate() - 7); 
+                        timeframe = '15Min';
+                        break;
+                    case '1M': 
+                        fromDate.setMonth(fromDate.getMonth() - 1); 
+                        timeframe = '1Hour';
+                        break;
+                    case '3M': 
+                        fromDate.setMonth(fromDate.getMonth() - 3); 
+                        timeframe = '1Day';
+                        break;
+                    case '1Y': 
+                        fromDate.setFullYear(fromDate.getFullYear() - 1); 
+                        timeframe = '1Day';
+                        break;
+                    case '5Y': 
+                        fromDate.setFullYear(fromDate.getFullYear() - 5); 
+                        timeframe = '1Week';
+                        break;
                 }
                 
-                const from = fromDate.toISOString().split('T')[0];
-                const history = await getStockHistoryWithRange(symbol, from, to, '1d');
-                setData(history);
+                const from = fromDate.toISOString();
+                
+                // Fetch from Alpaca Data API via Server Action
+                const history = await getAlpacaHistoricalBars(symbol, timeframe, from, to);
+                
+                // Fallback to Yahoo if no data from Alpaca (e.g. invalid symbol or free tier restriction)
+                if (history.length === 0) {
+                    const fallbackTo = to.split('T')[0];
+                    const fallbackFrom = fromDate.toISOString().split('T')[0];
+                    const fallbackHistory = await getStockHistoryWithRange(symbol, fallbackFrom, fallbackTo, range === '1D' || range === '1W' ? '5m' : '1d');
+                    setData(fallbackHistory);
+                } else {
+                    setData(history);
+                }
             } catch (error) {
                 console.error("Failed to fetch history for advanced chart", error);
             } finally {
@@ -147,9 +177,17 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
             },
         });
 
-        // Format data
+        // Format data properly for lightweight-charts
+        const formatTime = (dateStr: string) => {
+            if (dateStr.length > 10) {
+                // Return unix timestamp in seconds for intraday
+                return Math.floor(new Date(dateStr).getTime() / 1000) as Time;
+            }
+            return dateStr as Time;
+        };
+
         const candleData: CandlestickData[] = data.map(d => ({
-            time: d.date as Time,
+            time: formatTime(d.date),
             open: d.open,
             high: d.high,
             low: d.low,
@@ -157,7 +195,7 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
         }));
 
         const volumeData: HistogramData[] = data.map(d => ({
-            time: d.date as Time,
+            time: formatTime(d.date),
             value: d.volume || 0,
             color: d.close >= d.open ? 'rgba(34, 197, 94, 0.4)' : 'rgba(239, 68, 68, 0.4)',
         }));
@@ -214,12 +252,12 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                 <div className="flex items-center gap-3">
                     <Tabs value={range} onValueChange={(v: string) => setRange(v as any)} className="bg-muted/50 p-1 rounded-lg">
                         <TabsList className="h-8">
+                            <TabsTrigger value="1D" className="text-xs px-3">1D</TabsTrigger>
+                            <TabsTrigger value="1W" className="text-xs px-3">1W</TabsTrigger>
                             <TabsTrigger value="1M" className="text-xs px-3">1M</TabsTrigger>
                             <TabsTrigger value="3M" className="text-xs px-3">3M</TabsTrigger>
-                            <TabsTrigger value="6M" className="text-xs px-3">6M</TabsTrigger>
                             <TabsTrigger value="1Y" className="text-xs px-3">1Y</TabsTrigger>
                             <TabsTrigger value="5Y" className="text-xs px-3">5Y</TabsTrigger>
-                            <TabsTrigger value="ALL" className="text-xs px-3">ALL</TabsTrigger>
                         </TabsList>
                     </Tabs>
                     <div className="flex gap-2">

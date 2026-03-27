@@ -1,6 +1,7 @@
 "use server"
 
 import { getStockQuote, getStockHistory, getIntradayData as getIntradayDataApi, getBatchStockQuotes as getBatchStockQuotesApi, getStockProfile as getStockProfileApi, StockData, HistoricalDataPoint, IntradayResult, StockProfile } from "@/lib/stock-api";
+import { getHistoricalBars as getAlpacaHistoricalBarsApi } from "@/lib/alpaca";
 
 export interface StockResult {
     quote: StockData | null;
@@ -35,4 +36,18 @@ export async function getBatchStockQuotes(symbols: string[]): Promise<StockData[
 
 export async function getStockProfile(symbol: string): Promise<StockProfile | null> {
     return await getStockProfileApi(symbol);
+}
+
+export async function getAlpacaHistoricalBars(
+    symbol: string,
+    timeframe: string,
+    start: string,
+    end: string
+): Promise<HistoricalDataPoint[]> {
+    return await getAlpacaHistoricalBarsApi(symbol, timeframe, start, end);
+}
+
+
+export async function fetchStockQuote(symbol: string): Promise<StockData | null> {
+    return await getStockQuote(symbol);
 }
