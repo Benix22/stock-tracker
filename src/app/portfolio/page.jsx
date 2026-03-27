@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { ArrowLeft, Loader2, Brain, TrendingUp, ShieldCheck, Target, Sparkles, RefreshCw } from "lucide-react";
+import { getBatchStockQuotes } from "@/actions/stock";
+import { useAuth, UserButton } from "@clerk/nextjs";
 import { getPositions, addOrUpdatePosition, deletePosition } from "@/actions/portfolio-db";
 import { getPortfolioSummary } from "@/actions/portfolio-ai";
-import { Brain, TrendingUp, ShieldCheck, Target, Sparkles, RefreshCw } from "lucide-react";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const fmtCurrency = (n, currency = "USD") =>
