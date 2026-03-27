@@ -51,3 +51,11 @@ export async function getAlpacaHistoricalBars(
 export async function fetchStockQuote(symbol: string): Promise<StockData | null> {
     return await getStockQuote(symbol);
 }
+
+export async function getAlpacaConfig() {
+    return {
+        keyId: process.env.ALPACA_API_KEY,
+        secretKey: process.env.ALPACA_SECRET_KEY,
+        paper: (process.env.ALPACA_API_KEY || '').startsWith('PK')
+    };
+}

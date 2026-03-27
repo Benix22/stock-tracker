@@ -5,7 +5,7 @@ import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickData, Histogr
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Maximize2, Settings2, BarChart3, TrendingUp, Calendar } from 'lucide-react';
 import { HistoricalDataPoint } from '@/lib/stock-api';
-import { getStockHistoryWithRange, getAlpacaHistoricalBars } from '@/actions/stock';
+import { getStockHistoryWithRange, getAlpacaHistoricalBars, getAlpacaConfig } from '@/actions/stock';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -23,6 +23,83 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
     const [data, setData] = useState<HistoricalDataPoint[]>(initialData);
     const [loading, setLoading] = useState(initialData.length === 0);
     const [range, setRange] = useState<'1D' | '1W' | '1M' | '3M' | '1Y' | '5Y'>('1M');
+
+    // WebSocket Logic for Real-time Updates
+    useEffect(() => {
+        let ws: WebSocket | null = null;
+        let authTimeout: NodeJS.Timeout;
+
+        const connectWS = async () => {
+            if (!symbol || symbol.includes('.') || symbol.includes('^')) return;
+
+            const config = await getAlpacaConfig();
+            if (!config.keyId || !config.secretKey) return;
+
+            const wsUrl = config.paper 
+                ? 'wss://stream.data.alpaca.markets/v2/iex' 
+                : 'wss://stream.data.alpaca.markets/v2/iex'; // Usamos IEX por defecto para free/paper
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                // 1. Authenticate
+                ws?.send(JSON.stringify({
+                    action: 'auth',
+                    key: config.keyId,
+                    secret: config.secretKey
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                const messages = JSON.parse(event.data);
+                for (const msg of messages) {
+                    if (msg.T === 'success' && msg.msg === 'authenticated') {
+                        // 2. Subscribe to bars or trades
+                        // We use bars (minute) to update the last candle
+                        ws?.send(JSON.stringify({
+                            action: 'subscribe',
+                            bars: [symbol.toUpperCase()]
+                        }));
+                    } else if (msg.T === 'b' && msg.S === symbol.toUpperCase()) {
+                        // Real-time bar received
+                        if (candleSeriesRef.current && volumeSeriesRef.current) {
+                            const time = Math.floor(new Date(msg.t).getTime() / 1000) as Time;
+                            
+                            candleSeriesRef.current.update({
+                                time,
+                                open: msg.o,
+                                high: msg.h,
+                                low: msg.l,
+                                close: msg.c
+                            });
+
+                            volumeSeriesRef.current.update({
+                                time,
+                                value: msg.v,
+                                color: msg.c >= msg.o ? 'rgba(34, 197, 94, 0.4)' : 'rgba(239, 68, 68, 0.4)'
+                            });
+                        }
+                    }
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('Alpaca WebSocket Error:', error);
+            };
+
+            ws.onclose = () => {
+                // Silently close
+            };
+        };
+
+        connectWS();
+
+        return () => {
+            if (ws) {
+                ws.close();
+            }
+        };
+    }, [symbol]);
 
     // Fetch data when symbol or range changes
     useEffect(() => {
