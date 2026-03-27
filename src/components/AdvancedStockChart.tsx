@@ -152,7 +152,17 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                     } else if (msg.T === 't' && msg.S === symbol.toUpperCase()) {
                         // Real-time TRADE received
                         console.log(`[WebSocket] TRADE: ${symbol} @ $${msg.p}`);
+                        
                         setLivePrice(msg.p);
+                        
+                        // Recalculate Change and Percent based on the FIRST data point of the day/period
+                        if (data.length > 0) {
+                            const openPrice = data[0].open;
+                            const change = msg.p - openPrice;
+                            const percent = (change / openPrice) * 100;
+                            setLiveChange(change);
+                            setLivePercent(percent);
+                        }
                         
                         // Update Chart
                         if (candleSeriesRef.current) {
@@ -160,6 +170,8 @@ export function AdvancedStockChart({ symbol, initialData = [] }: AdvancedStockCh
                             tradeDate.setSeconds(0, 0); 
                             const minuteTimestamp = Math.floor(tradeDate.getTime() / 1000) as Time;
 
+                            // IMPORTANT: For candle update, we only send time and close. 
+                            // lightweight-charts will handle the high/low candle adjustment automatically.
                             candleSeriesRef.current.update({
                                 time: minuteTimestamp,
                                 close: msg.p,
