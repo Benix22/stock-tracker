@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
-import { LayoutDashboard, Briefcase, Grid3X3, LineChart, Menu, X, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Briefcase, Grid3X3, LineChart, Menu, X, ChevronRight, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
@@ -29,6 +29,7 @@ export function Navbar() {
   const navItems = [
     { label: "Home", href: "/", icon: <LayoutDashboard className="w-4 h-4" /> },
     { label: "My Portfolio", href: "/portfolio", icon: <Briefcase className="w-4 h-4" /> },
+    { label: "Traders League", href: "/league", icon: <Trophy className="w-4 h-4" /> },
     { label: "Heatmap", href: "/heatmap", icon: <Grid3X3 className="w-4 h-4" /> },
     { label: "Advanced Chart", href: "/advanced", icon: <LineChart className="w-4 h-4" /> },
   ];

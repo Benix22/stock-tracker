@@ -19,6 +19,8 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 
+import { LeagueTradeWidget } from "@/components/LeagueTradeWidget";
+
 interface StockDetailClientProps {
     symbol: string;
     initialPerformance: StockPerformance | null;
@@ -173,17 +175,20 @@ export function StockDetailClient({ symbol, initialPerformance, profile, isIndex
     return (
         <div className="grid gap-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex items-center gap-3 md:gap-4">
-                    <h2 className="text-xl md:text-2xl font-bold tracking-tight">Market Overview</h2>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => isWatched(symbol) ? removeFromWatchlist(symbol) : addToWatchlist(symbol)}
-                        className="h-8 px-2 md:px-3 text-xs md:text-sm"
-                    >
-                        <Star className={`h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2 ${isWatched(symbol) ? "fill-yellow-400 text-yellow-400" : ""}`} />
-                        {isWatched(symbol) ? "Unwatch" : "Watch"}
-                    </Button>
+                <div className="flex items-center gap-3 md:gap-4 flex-wrap">
+                    <h2 className="text-xl md:text-2xl font-bold tracking-tight shrink-0">Market Overview</h2>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => isWatched(symbol) ? removeFromWatchlist(symbol) : addToWatchlist(symbol)}
+                            className="h-8 px-2 md:px-3 text-xs md:text-sm"
+                        >
+                            <Star className={`h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2 ${isWatched(symbol) ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                            {isWatched(symbol) ? "Unwatch" : "Watch"}
+                        </Button>
+                        {!isIndex && <LeagueTradeWidget symbol={symbol} currentPrice={latestPrice || initialPerformance?.currentPrice || 0} />}
+                    </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 md:gap-6 w-full md:w-auto">
                     {/* Comparison UI */}
