@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Trophy, Wallet, ShoppingCart, Loader2, TrendingUp, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { formatLeagueNumber } from "@/lib/utils";
 
 export function LeagueTradeWidget({ symbol, currentPrice }: { symbol: string, currentPrice: number }) {
     const [participant, setParticipant] = useState<any>(null);
@@ -78,7 +79,7 @@ export function LeagueTradeWidget({ symbol, currentPrice }: { symbol: string, cu
                     <div className="flex items-center justify-between mt-6 bg-white/5 rounded-2xl p-4 border border-white/5">
                         <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-muted-foreground uppercase">League Cash</span>
-                            <span className="text-lg font-black tabular-nums">${new Intl.NumberFormat().format(participant.cashBalance)}</span>
+                            <span className="text-lg font-black tabular-nums">{formatLeagueNumber(participant.cashBalance, 2, "$")}</span>
                         </div>
                         <Wallet className="w-6 h-6 text-muted-foreground/30" />
                     </div>
@@ -100,7 +101,7 @@ export function LeagueTradeWidget({ symbol, currentPrice }: { symbol: string, cu
                         </div>
                         <div className="flex items-center justify-between px-1">
                             <span className="text-xs text-muted-foreground font-medium">Estimated cost</span>
-                            <span className="text-sm font-black tabular-nums text-white">${new Intl.NumberFormat().format(totalCost)}</span>
+                            <span className="text-sm font-black tabular-nums text-white">{formatLeagueNumber(totalCost, 2, "$")}</span>
                         </div>
                     </div>
 

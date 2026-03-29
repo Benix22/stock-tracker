@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LeagueLeaderboard } from "@/components/LeagueLeaderboard";
 import { ClientLeagueAction } from "@/components/ClientLeagueAction";
+import { formatLeagueNumber } from "@/lib/utils";
 
 export default async function LeaguePage() {
   const { userId } = await auth();
@@ -90,17 +91,17 @@ export default async function LeaguePage() {
                                     <div>
                                         <div className="text-xs font-bold text-zinc-400 uppercase mb-1">Total Equity</div>
                                         <div className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40">
-                                            ${new Intl.NumberFormat().format(userTotalValue)}
+                                            {formatLeagueNumber(userTotalValue, 2, "$")}
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-white/[0.03] p-4 rounded-2xl border border-white/5">
                                             <div className="text-[10px] font-bold text-zinc-400 uppercase mb-1">Current P&L</div>
                                             <div className={`text-xl font-black ${userPL >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                                                {userPL >= 0 ? "+" : ""}{new Intl.NumberFormat().format(userPL)}
+                                                {userPL >= 0 ? "+" : ""}{formatLeagueNumber(userPL, 2, "$")}
                                             </div>
                                             <div className={`text-[10px] font-bold ${userPL >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                                                {userPL >= 0 ? "+" : ""}{userPLPct.toFixed(2)}%
+                                                {userPL >= 0 ? "+" : ""}{formatLeagueNumber(userPLPct, 2)}%
                                             </div>
                                         </div>
                                         <div className="bg-white/[0.03] p-4 rounded-2xl border border-white/5">
@@ -131,9 +132,9 @@ export default async function LeaguePage() {
                                                                 </div>
                                                             </div>
                                                             <div className="text-right">
-                                                                <div className="text-xs font-bold text-zinc-200">${new Intl.NumberFormat().format(value)}</div>
+                                                                <div className="text-xs font-bold text-zinc-200">{formatLeagueNumber(value, 2, "$")}</div>
                                                                 <div className={`text-[9px] font-bold ${plPct >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                                                                    {plPct >= 0 ? "+" : ""}{plPct.toFixed(2)}%
+                                                                    {plPct >= 0 ? "+" : ""}{formatLeagueNumber(plPct, 2)}%
                                                                 </div>
                                                             </div>
                                                         </div>

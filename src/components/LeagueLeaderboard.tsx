@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, TrendingUp, DollarSign, Wallet } from "lucide-react";
+import { formatLeagueNumber } from "@/lib/utils";
 
 interface Participant {
     id: string;
@@ -77,10 +78,10 @@ export function LeagueLeaderboard({ participants }: { participants: Participant[
                                     Total Value
                                 </div>
                                 <div className="text-2xl font-black tabular-nums tracking-tighter text-white">
-                                    ${new Intl.NumberFormat().format(p.totalValue || p.cashBalance)}
+                                    {formatLeagueNumber(p.totalValue || p.cashBalance, 2, "$")}
                                 </div>
                                 <Badge variant="secondary" className={`${p.profitPct >= 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"} text-[10px] font-black border-none uppercase px-3 py-1`}>
-                                    {p.profitPct >= 0 ? "+" : ""}{p.profitPct.toFixed(2)}%
+                                    {p.profitPct >= 0 ? "+" : ""}{formatLeagueNumber(p.profitPct, 2)}%
                                 </Badge>
                             </div>
                         </CardContent>
