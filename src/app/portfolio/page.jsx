@@ -249,10 +249,10 @@ export default function PortfolioPage() {
       if (result) {
         setAiSummary(result);
       } else {
-        setAiError("No se pudo generar el análisis en este momento.");
+        setAiError("Could not generate analysis at this time.");
       }
     } catch (err) {
-      setAiError("Error de conexión con la IA.");
+      setAiError("IA connection error.");
     } finally {
       setAiLoading(false);
     }
@@ -548,7 +548,7 @@ export default function PortfolioPage() {
                     Investment Co-pilot
                     <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Pro</span>
                   </h2>
-                  <p className="text-sm text-muted-foreground font-medium">Análisis de mercado curado y adaptado a tu exposición real</p>
+                  <p className="text-sm text-muted-foreground font-medium">Curated market analysis tailored to your real exposure</p>
                 </div>
               </div>
               <button
@@ -557,7 +557,7 @@ export default function PortfolioPage() {
                 className="group flex items-center gap-3 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all duration-300 disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${aiLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-700"}`} />
-                {aiLoading ? "Consultando Mercado..." : aiSummary ? "Recalcular Estrategia" : "Activar Co-pilot"}
+                {aiLoading ? "Querying Market..." : aiSummary ? "Recalculate Strategy" : "Activate Co-pilot"}
               </button>
             </div>
 
@@ -570,8 +570,8 @@ export default function PortfolioPage() {
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-bold tracking-tight">Curando información de mercado...</p>
-                  <p className="text-sm text-muted-foreground mt-1">Filtrando el ruido para darte solo lo que importa.</p>
+                  <p className="text-xl font-bold tracking-tight">Curating market information...</p>
+                  <p className="text-sm text-muted-foreground mt-1">Filtering the noise to give you only what matters.</p>
                 </div>
               </div>
             )}
@@ -594,10 +594,10 @@ export default function PortfolioPage() {
                   <div className="relative flex flex-col h-full">
                     <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-[0.2em] mb-4">
                       <TrendingUp className="w-4 h-4" />
-                      Estado de tu Exposición
+                      Exposure Status
                     </div>
                     <h3 className="text-2xl font-bold mb-6 leading-tight">
-                      Tu resumen de mercado hoy:
+                      Your market summary today:
                     </h3>
                     <p className="text-lg text-muted-foreground leading-relaxed italic border-l-4 border-primary/40 pl-6 py-2">
                        {aiSummary.summary}
@@ -610,7 +610,7 @@ export default function PortfolioPage() {
                       </div>
                       <div className="flex items-center gap-2 bg-rose-500/10 text-rose-400 px-4 py-2 rounded-xl text-xs font-bold border border-rose-500/20">
                         <ShieldCheck className="w-4 h-4" />
-                        Riesgo: {aiSummary.risk.split('.')[0]}
+                        Risk: {aiSummary.risk.split('.')[0]}
                       </div>
                     </div>
                   </div>
@@ -620,9 +620,9 @@ export default function PortfolioPage() {
                 <div className="md:col-span-4 p-8 rounded-3xl bg-primary text-primary-foreground shadow-[0_20px_50px_rgba(37,99,235,0.3)] flex flex-col group transition-transform hover:-translate-y-1">
                   <div className="flex items-center justify-between mb-8">
                     <Sparkles className="w-8 h-8 opacity-50" />
-                    <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter">Acción Sugerida</span>
+                    <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter">SUGGESTED ACTION</span>
                   </div>
-                  <h3 className="text-2xl font-black mb-6 leading-none">Consejos de Co-pilot</h3>
+                  <h3 className="text-2xl font-black mb-6 leading-none">Co-pilot Strategic Tips</h3>
                   
                   <div className="space-y-4 flex-1">
                     <p className="text-primary-foreground/90 font-medium leading-relaxed">
@@ -631,7 +631,7 @@ export default function PortfolioPage() {
                   </div>
                   
                   <div className="mt-8 pt-6 border-t border-white/10 text-[10px] font-bold opacity-60 uppercase tracking-widest">
-                    Basado en noticias sectoriales y tu Beta actual
+                    Based on sector news and your current Beta exposure
                   </div>
                 </div>
 
@@ -639,7 +639,7 @@ export default function PortfolioPage() {
                 <div className="md:col-span-6 p-6 rounded-2xl bg-card border border-white/5 space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <Target className="w-4 h-4 text-emerald-500" />
-                    Análisis de Diversificación
+                    Diversification Analysis
                   </h4>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {aiSummary.diversification}
@@ -649,7 +649,7 @@ export default function PortfolioPage() {
                 <div className="md:col-span-6 p-6 rounded-2xl bg-card border border-white/5 space-y-3">
                   <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-rose-500" />
-                    Evaluación de Riesgos Detallada
+                    Detailed Risk Assessment
                   </h4>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {aiSummary.risk}
@@ -663,7 +663,7 @@ export default function PortfolioPage() {
         {/* Footer note */}
         {positions.length > 0 && (
           <p className="mt-12 text-center text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-bold py-12 opacity-50 border-t border-white/5">
-            Investment Co-pilot · Inteligencia aplicada al mercado de valores
+            Investment Co-pilot · Intelligence applied to the stock market
           </p>
         )}
       </div>

@@ -57,7 +57,7 @@ export async function getPortfolioSummary(positions: { ticker: string, shares: n
             3. Risk Profile: Is it high risk or conservative?
             4. Strategic Opportunities: What should the user consider next (buying more, rebalancing, sector rotation)?
             
-            Output strictly in Spanish.
+            Output strictly in English.
             Return strictly a JSON object:
             {
               "summary": "Short executive summary",
