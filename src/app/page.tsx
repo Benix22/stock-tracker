@@ -37,9 +37,11 @@ export default async function Dashboard() {
             <Watchlist />
             <MarketMovers movers={gainers} />
             <MarketMovers movers={losers} title="Top Losers (US)" type="losers" />
+            <SpeedInsights />
           </div>
         </div>
       </div>
     </div>
+
   );
 }
