@@ -3,6 +3,7 @@ import { Watchlist } from "@/components/Watchlist";
 import { getStockQuote, getStockHistory, getMarketMovers } from "@/lib/stock-api";
 import { MarketMovers } from "@/components/MarketMovers";
 import { MarketCalendar } from "@/components/MarketCalendar";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export const revalidate = 60; // Revalidate every minute
 
