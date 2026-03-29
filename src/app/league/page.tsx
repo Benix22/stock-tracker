@@ -9,9 +9,7 @@ import { ClientLeagueAction } from "@/components/ClientLeagueAction";
 
 export default async function LeaguePage() {
   const { userId } = await auth();
-  if (!userId) {
-    redirect("/sign-in");
-  }
+  // Protection handled by middleware
 
     const participant = await getLeagueParticipant();
     const rawLeaderboard = await getLeagueLeaderboard();
@@ -60,7 +58,7 @@ export default async function LeaguePage() {
                         </div>
 
                         <div className="flex flex-col items-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-inner min-w-[240px]">
-                            <Timer className="w-8 h-8 text-primary mb-2" />
+                            <Timer className="w-8 h-8 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] mb-2" />
                             <div className="text-4xl font-black tabular-nums text-white">{daysRemaining}</div>
                             <div className="text-[10px] uppercase tracking-[0.3em] font-bold text-zinc-400">Days Remaining</div>
                         </div>
