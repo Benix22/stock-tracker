@@ -8,6 +8,8 @@ import { StockCalendarLink } from "@/components/StockCalendarLink";
 import Link from "next/link";
 import { ArrowLeft as ArrowLeftIcon } from "lucide-react";
 import { checkMarketOpen } from "@/lib/market";
+import { SpeedInsights } from "@vercel/speed-insights/next"
+
 
 interface PageProps {
     params: Promise<{ symbol: string }>;
@@ -60,9 +62,9 @@ export default async function StockDetailPage({ params }: PageProps) {
                             {quote?.name || decodedSymbol} ({decodedSymbol})
                             {!isIndex && !decodedSymbol.includes('=') && !decodedSymbol.includes('-') && (
                                 <>
-                                    <span 
-                                        className={`flex h-3 w-3 rounded-full border-2 border-background shadow-sm shrink-0 ${isMarketOpen ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} 
-                                        title={isMarketOpen ? "Market Open (Alpaca Real-time)" : "Market Closed (Last Price)"} 
+                                    <span
+                                        className={`flex h-3 w-3 rounded-full border-2 border-background shadow-sm shrink-0 ${isMarketOpen ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`}
+                                        title={isMarketOpen ? "Market Open (Alpaca Real-time)" : "Market Closed (Last Price)"}
                                     />
                                     <StockCalendarLink symbol={decodedSymbol} />
                                 </>
@@ -87,6 +89,7 @@ export default async function StockDetailPage({ params }: PageProps) {
 
                 <StockNews news={news} symbol={decodedSymbol} />
             </div>
+            <SpeedInsights />
         </div>
     );
 }
