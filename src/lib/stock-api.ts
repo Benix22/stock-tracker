@@ -432,10 +432,17 @@ export interface RecommendationData {
 }
 
 export async function getStockRecommendations(symbol: string): Promise<RecommendationData> {
+    // Currencies, cryptos, and indices don't have recommendations/analyst target data
+    if (symbol.endsWith('=X') || symbol.startsWith('^') || symbol.endsWith('=F') || symbol.includes('-USD') || symbol.includes('-EUR')) {
+        return { recommendations: [] };
+    }
+
     try {
         const result = await yahooFinance.quoteSummary(symbol, {
             modules: ['upgradeDowngradeHistory', 'financialData', 'recommendationTrend']
         });
+
+        if (!result) return { recommendations: [] };
 
         const history = result.upgradeDowngradeHistory?.history || [];
         const recommendations = history.map((rec: any) => ({

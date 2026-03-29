@@ -168,7 +168,7 @@ export default async function LeaguePage() {
                         <div className="lg:col-span-2">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-black tracking-tight flex items-center gap-3 text-white">
-                                    <Users className="w-6 h-6 text-primary" />
+                                    <Users className="w-6 h-6 text-indigo-400 drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]" />
                                     Leaderboard
                                 </h2>
                                 <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full border border-white/5">
