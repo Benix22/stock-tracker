@@ -302,8 +302,8 @@ export default function PortfolioPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
         {showModal && (
           <AddPositionModal
             onAdd={handleAddPosition}
@@ -418,9 +418,9 @@ export default function PortfolioPage() {
 
         {/* Positions table */}
         {positions.length > 0 && (
-          <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+          <div className="overflow-x-auto rounded-2xl border bg-card shadow-sm scrollbar-thin scrollbar-thumb-muted-foreground/20">
             {/* Table header */}
-            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 border-b bg-muted/50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 border-b bg-muted/50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground min-w-[800px]">
               {[
                 { key: "ticker", label: "Asset" },
                 { key: null, label: "Price" },
@@ -449,7 +449,7 @@ export default function PortfolioPage() {
               return (
                 <div
                   key={pos.id}
-                  className="group relative grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 border-b px-5 py-4 transition hover:bg-muted/50 last:border-0"
+                  className="group relative grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-0 border-b px-5 py-4 transition hover:bg-muted/50 last:border-0 min-w-[800px]"
                 >
                   {/* Allocation bar */}
                   <div
@@ -517,7 +517,7 @@ export default function PortfolioPage() {
                   <div className="relative flex items-center">
                     <button
                       onClick={() => handleRemovePosition(pos.id)}
-                      className="rounded-lg p-1.5 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                      className="rounded-lg p-1.5 text-muted-foreground opacity-100 md:opacity-0 transition hover:bg-destructive/10 hover:text-destructive md:group-hover:opacity-100"
                       title="Remove position"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
