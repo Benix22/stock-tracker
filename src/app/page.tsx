@@ -2,6 +2,7 @@ import { StockDashboard } from "@/components/StockDashboard";
 import { Watchlist } from "@/components/Watchlist";
 import { getStockQuote, getStockHistory, getMarketMovers } from "@/lib/stock-api";
 import { MarketMovers } from "@/components/MarketMovers";
+import { MarketCalendar } from "@/components/MarketCalendar";
 
 export const revalidate = 60; // Revalidate every minute
 
@@ -31,6 +32,7 @@ export default async function Dashboard() {
             <StockDashboard initialStocks={stocksData} />
           </div>
           <div className="space-y-6">
+            <MarketCalendar />
             <Watchlist />
             <MarketMovers movers={gainers} />
             <MarketMovers movers={losers} title="Top Losers (US)" type="losers" />
