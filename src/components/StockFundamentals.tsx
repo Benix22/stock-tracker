@@ -215,8 +215,8 @@ export function StockFundamentals({ quote }: StockFundamentalsProps) {
                                 </div>
                             )}
                         </div>
-                        <div className="rounded-md border overflow-hidden">
-                            <table className="w-full text-sm">
+                        <div className="rounded-md border overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20">
+                            <table className="w-full text-sm min-w-[700px]">
                                 <thead className="bg-muted/50">
                                     <tr className="text-left">
                                         <th className="p-3 font-medium">Firm</th>
