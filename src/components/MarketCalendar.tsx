@@ -106,20 +106,18 @@ export function MarketCalendar() {
     }, [today]);
 
     return (
-        <Card className="w-full border-white/5 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden group">
-            <CardHeader className="border-b border-white/5 pb-6">
-                <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                        <CardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
-                            <Globe className="w-5 h-5 text-primary" />
-                            Global Macro Events
-                        </CardTitle>
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">Systemic Market Catalysts</p>
-                    </div>
+        <Card className="w-full overflow-hidden group">
+            <CardHeader className="flex flex-row items-center justify-between py-4">
+                <div className="space-y-1">
+                    <CardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-primary" />
+                        Global Macro Events
+                    </CardTitle>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] opacity-40">Systemic Market Catalysts</p>
                 </div>
             </CardHeader>
             <CardContent className="p-0">
-                <div className="divide-y divide-white/5">
+                <div className="divide-y">
                     {upcomingEvents.map((event, i) => {
                         const eventDate = new Date(event.date);
                         const isToday = isSameDay(eventDate, new Date());
@@ -128,37 +126,37 @@ export function MarketCalendar() {
                         return (
                             <Dialog key={i}>
                                 <DialogTrigger asChild>
-                                    <div className={`flex items-start gap-4 p-4 hover:bg-white/5 transition-all relative cursor-pointer border-l-2 border-transparent hover:border-primary/40 ${isToday ? "bg-primary/5 border-primary" : ""}`}>
-                                        <div className="flex flex-col items-center justify-center min-w-[50px] py-1">
-                                            <span className="text-[10px] font-black text-muted-foreground uppercase opacity-50">{format(eventDate, "MMM")}</span>
-                                            <span className={`text-xl font-black tabular-nums transition-colors ${isToday ? "text-primary" : "text-foreground"}`}>
+                                    <div className={`group flex items-start gap-4 p-4 transition-all duration-300 relative cursor-pointer active:scale-[0.98] focus:outline-none select-none hover:bg-white/5 ${isToday ? "bg-primary/5 border-l-2 border-primary" : "hover:pl-6"}`}>
+                                        <div className="flex flex-col items-center justify-center min-w-[50px] py-1 transition-all group-hover:scale-125 duration-500">
+                                            <span className="text-[10px] font-black text-muted-foreground uppercase opacity-50 group-hover:text-primary transition-colors">{format(eventDate, "MMM")}</span>
+                                            <span className={`text-xl font-black tabular-nums transition-colors ${isToday ? "text-primary" : "text-foreground group-hover:text-primary"}`}>
                                                 {format(eventDate, "d")}
                                             </span>
                                         </div>
 
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0 transition-all duration-300">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <div className={`p-1 rounded-md bg-muted/40`}>
+                                                <div className={`p-1 rounded-md bg-muted/40 transition-all duration-300 group-hover:rotate-12 group-hover:bg-primary/20`}>
                                                     {event.type === 'FED' || event.type === 'ECB' ? <Landmark className="w-3.5 h-3.5 text-blue-500" /> :
                                                     event.type === 'CPI' ? <TrendingUp className="w-3.5 h-3.5 text-amber-500" /> :
                                                     event.type === 'NFP' ? <Users className="w-3.5 h-3.5 text-emerald-500" /> :
                                                     <Activity className="w-3.5 h-3.5 text-purple-500" />}
                                                 </div>
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">{event.type}</span>
-                                                {isToday && <span className="text-[9px] font-black uppercase tracking-widest text-primary animate-pulse ml-auto">Happening Today</span>}
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 transition-colors group-hover:text-primary">{event.type}</span>
+                                                {isToday && <span className="text-[9px] font-black uppercase tracking-widest text-primary animate-pulse ml-auto text-right">LIVE</span>}
                                             </div>
-                                            <h4 className="text-sm font-bold tracking-tight text-foreground truncate">{event.title}</h4>
-                                            <p className="text-xs text-muted-foreground line-clamp-1 italic mt-0.5">{event.description}</p>
+                                            <h4 className="text-sm font-bold tracking-tight text-foreground truncate transition-colors group-hover:text-primary">{event.title}</h4>
+                                            <p className="text-xs text-muted-foreground line-clamp-1 italic mt-0.5 transition-colors group-hover:text-foreground/70">{event.description}</p>
                                         </div>
 
-                                        <div className="flex flex-col items-end gap-2">
-                                            <span className={`text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded border ${
+                                        <div className="flex flex-col items-end gap-2 pr-2">
+                                            <span className={`text-[8px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded border transition-all duration-300 group-hover:scale-110 ${
                                                 event.impact === 'High' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
                                                 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                             }`}>
-                                                {event.impact} Impact
+                                                {event.impact}
                                             </span>
-                                            <ChevronRight className="w-4 h-4 text-muted-foreground/20 group-hover:text-primary transition-colors" />
+                                            <ChevronRight className="w-4 h-4 text-muted-foreground/20 transition-all duration-500 group-hover:translate-x-2 group-hover:text-primary" />
                                         </div>
                                     </div>
                                 </DialogTrigger>
