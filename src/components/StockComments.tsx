@@ -101,7 +101,7 @@ export function StockComments({ symbol }: { symbol: string }) {
 
     return (
         <Card className="w-full">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="space-y-1">
                     <CardTitle className="text-xl flex items-center gap-2">
                         <MessageSquare className="w-5 h-5 text-primary" />
@@ -150,15 +150,15 @@ export function StockComments({ symbol }: { symbol: string }) {
                                 maxLength={500}
                             />
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
                                     <Button
                                         type="button"
                                         variant="outline"
                                         size="sm"
                                         onClick={() => setSentiment("BULLISH")}
-                                        className={`gap-2 rounded-full ${sentiment === "BULLISH" ? "bg-emerald-500/10 border-emerald-500 text-emerald-500" : "text-muted-foreground"}`}
+                                        className={`gap-1.5 md:gap-2 rounded-full h-8 px-2 md:px-3 text-[10px] md:text-sm ${sentiment === "BULLISH" ? "bg-emerald-500/10 border-emerald-500 text-emerald-500" : "text-muted-foreground"}`}
                                     >
-                                        <ThumbsUp className="w-4 h-4" />
+                                        <ThumbsUp className="w-3.5 h-3.5" />
                                         Bullish
                                     </Button>
                                     <Button
@@ -166,9 +166,9 @@ export function StockComments({ symbol }: { symbol: string }) {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => setSentiment("BEARISH")}
-                                        className={`gap-2 rounded-full ${sentiment === "BEARISH" ? "bg-rose-500/10 border-rose-500 text-rose-500" : "text-muted-foreground"}`}
+                                        className={`gap-1.5 md:gap-2 rounded-full h-8 px-2 md:px-3 text-[10px] md:text-sm ${sentiment === "BEARISH" ? "bg-rose-500/10 border-rose-500 text-rose-500" : "text-muted-foreground"}`}
                                     >
-                                        <ThumbsDown className="w-4 h-4" />
+                                        <ThumbsDown className="w-3.5 h-3.5" />
                                         Bearish
                                     </Button>
                                     <Button
@@ -176,7 +176,7 @@ export function StockComments({ symbol }: { symbol: string }) {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => setSentiment("NEUTRAL")}
-                                        className={`gap-2 rounded-full ${sentiment === "NEUTRAL" ? "bg-primary/10 border-primary text-primary" : "text-muted-foreground"}`}
+                                        className={`gap-1.5 md:gap-2 rounded-full h-8 px-2 md:px-3 text-[10px] md:text-sm ${sentiment === "NEUTRAL" ? "bg-primary/10 border-primary text-primary" : "text-muted-foreground"}`}
                                     >
                                         Neutral
                                     </Button>
@@ -219,21 +219,21 @@ export function StockComments({ symbol }: { symbol: string }) {
                                         </div>
                                     )}
                                 </div>
-                                <div className="flex-1 space-y-1">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-bold text-sm text-foreground">{comment.userFullName}</span>
+                                <div className="flex-1 min-w-0 space-y-1">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex flex-wrap items-center gap-2 min-w-0">
+                                            <span className="font-bold text-sm text-foreground truncate">{comment.userFullName}</span>
                                             {comment.isHolder && (
-                                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[9px] font-bold text-primary uppercase tracking-tighter shadow-sm">
+                                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[9px] font-bold text-primary uppercase tracking-tighter shadow-sm shrink-0">
                                                     <ShieldCheck className="w-2.5 h-2.5" />
                                                     Verified Holder
                                                 </span>
                                             )}
-                                            <span className="text-[10px] text-muted-foreground font-medium uppercase px-2 py-0.5 bg-muted rounded-full">
+                                            <span className="text-[10px] text-muted-foreground font-medium uppercase px-2 py-0.5 bg-muted rounded-full shrink-0">
                                                 {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                                             </span>
                                             {comment.sentiment !== "NEUTRAL" && (
-                                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-sm
+                                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm shadow-sm shrink-0
                                                     ${comment.sentiment === "BULLISH" ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"}`}>
                                                     {comment.sentiment}
                                                 </span>

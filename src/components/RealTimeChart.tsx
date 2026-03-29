@@ -280,43 +280,45 @@ export function RealTimeChart({
     }
 
     return (
-        <Card className="w-full h-full flex flex-col shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
+        <Card className="w-full h-full flex flex-col shadow-sm overflow-hidden">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 md:p-6 space-y-4 sm:space-y-0">
                 <div className="space-y-1 w-full">
-                    <CardTitle className="flex justify-between items-center">
+                    <CardTitle className="flex justify-between items-center w-full">
                         <div className="flex items-center gap-2">
-                            <span>{symbol} {isCustom ? 'History' : `Today (${lastUpdated.toLocaleTimeString()})`}</span>
+                            <span className="text-base md:text-lg">{symbol} {isCustom ? 'History' : `Today (${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`}</span>
                             {!isCustom && !symbol.includes('=') && !symbol.includes('^') && !symbol.includes('-') && (
                                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Alpaca Real-time" />
                             )}
                         </div>
                         {isComparisonMode && (
-                            <div className="flex items-center gap-4 text-sm font-normal">
+                            <div className="flex items-center gap-2 md:gap-4 text-[10px] md:text-sm font-normal">
                                 <span style={{ color: color }}>● {symbol}</span>
                                 <span style={{ color: "#d946ef" }}>● {comparisonSymbol}</span>
                             </div>
                         )}
                     </CardTitle>
                     {(changeValue !== 0 || changePercent !== 0) ? (
-                        <div className="flex items-center text-sm font-medium">
-                            <span className={`flex items-center ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : ""}`}>
-                                {changeValue > 0 ? "+" : ""}{changeValue.toFixed(decimals)}{!isIndex && " US$"}
-                                <span className="flex items-center ml-1">
-                                    (
-                                    {changeValue > 0 ? <ArrowUpIcon className="h-3 w-3 mr-1" /> : changeValue < 0 ? <ArrowDownIcon className="h-3 w-3 mr-1" /> : null}
-                                    {changePercent.toFixed(2)}%)
+                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                            <div className="flex items-center text-sm md:text-base font-medium">
+                                <span className={`flex items-center ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : ""}`}>
+                                    {changeValue > 0 ? "+" : ""}{changeValue.toFixed(decimals)}{!isIndex && " US$"}
+                                    <span className="flex items-center ml-1">
+                                        (
+                                        {changeValue > 0 ? <ArrowUpIcon className="h-3 w-3 mr-1" /> : changeValue < 0 ? <ArrowDownIcon className="h-3 w-3 mr-1" /> : null}
+                                        {changePercent.toFixed(2)}%)
+                                    </span>
                                 </span>
-                            </span>
-                            <span className="text-muted-foreground ml-2 text-xs">{referenceLabel}</span>
+                                <span className="text-muted-foreground ml-2 text-[10px] md:text-xs">{referenceLabel}</span>
+                            </div>
 
-                            <span className={`text-4xl font-bold ml-6 ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : "text-foreground"
+                            <div className={`text-2xl md:text-4xl font-bold ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : "text-foreground"
                                 }`}>
                                 <FlashingDigits value={currentPrice} decimals={decimals} prefix={isIndex ? "" : "$"} />
-                            </span>
+                            </div>
                         </div>
                     ) : (
                         <div className="flex items-center">
-                            <span className="text-4xl font-bold text-foreground">
+                            <span className="text-2xl md:text-4xl font-bold text-foreground">
                                 <FlashingDigits value={currentPrice} decimals={decimals} prefix={isIndex ? "" : "$"} />
                             </span>
                         </div>
@@ -324,8 +326,8 @@ export function RealTimeChart({
                 </div>
             </CardHeader>
             <CardContent className="pl-0 flex-1 flex flex-col min-h-0">
-                <div className="flex-1 w-full flex flex-col min-h-0 px-2">
-                    <div className="flex-1 min-h-[400px]">
+                <div className="flex-1 w-full flex flex-col min-h-0">
+                    <div className="flex-1 min-h-[300px] md:min-h-[400px]">
                         <ResponsiveContainer width="100%" height={showRSI ? "75%" : "100%"}>
                             <ComposedChart data={chartData} syncId="stockChart">
                                 <defs>

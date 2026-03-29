@@ -173,18 +173,19 @@ export function StockDetailClient({ symbol, initialPerformance, profile, isIndex
     return (
         <div className="grid gap-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-bold tracking-tight">Market Overview</h2>
+                <div className="flex items-center gap-3 md:gap-4">
+                    <h2 className="text-xl md:text-2xl font-bold tracking-tight">Market Overview</h2>
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => isWatched(symbol) ? removeFromWatchlist(symbol) : addToWatchlist(symbol)}
+                        className="h-8 px-2 md:px-3 text-xs md:text-sm"
                     >
-                        <Star className={`h-4 w-4 mr-2 ${isWatched(symbol) ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                        <Star className={`h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2 ${isWatched(symbol) ? "fill-yellow-400 text-yellow-400" : ""}`} />
                         {isWatched(symbol) ? "Unwatch" : "Watch"}
                     </Button>
                 </div>
-                <div className="flex flex-wrap items-center gap-6">
+                <div className="flex flex-wrap items-center gap-3 md:gap-6 w-full md:w-auto">
                     {/* Comparison UI */}
                     <div className="flex items-center gap-2">
                         {comparedSymbol ? (
@@ -251,14 +252,14 @@ export function StockDetailClient({ symbol, initialPerformance, profile, isIndex
                 </div>
             </div>
 
-            <div className="flex gap-2 mb-2 w-full pt-2">
+            <div className="flex flex-wrap gap-1.5 md:gap-2 mb-2 w-full pt-2">
                 {['1D', '5D', '1M', '5M', 'YTD', '1Y', '5Y', 'MAX'].map(r => (
                     <Button
                         key={r}
                         variant={activeRangeBadge === r ? "default" : "outline"}
                         size="sm"
                         onClick={() => handleQuickRange(r)}
-                        className={`text-xs h-7 px-3 ${activeRangeBadge === r ? '' : 'text-muted-foreground'}`}
+                        className={`text-[10px] md:text-xs h-7 px-2 md:px-3 flex-1 md:flex-none ${activeRangeBadge === r ? '' : 'text-muted-foreground'}`}
                     >
                         {r}
                     </Button>

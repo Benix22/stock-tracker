@@ -39,13 +39,13 @@ export function Navbar() {
         ? "bg-background shadow-lg" 
         : "bg-background/80 backdrop-blur-md"
     }`}>
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="font-bold text-xl tracking-tighter flex items-center gap-2">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-2 md:gap-8 overflow-hidden">
+          <Link href="/" className="font-bold text-lg md:text-xl tracking-tighter flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
               <LineChart className="w-5 h-5 text-white" />
             </div>
-            <span className="hidden sm:inline-block">StockTracker</span>
+            <span className="inline-block">StockTracker</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-1">
@@ -67,25 +67,25 @@ export function Navbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
           {isLoaded ? (
             isSignedIn ? (
-              <UserButton appearance={{ elements: { userButtonAvatarBox: "w-9 h-9" } }} />
+              <UserButton appearance={{ elements: { userButtonAvatarBox: "w-8 h-8 md:w-9 md:h-9" } }} />
             ) : (
               <SignInButton mode="modal">
-                <Button variant="default" size="sm" className="rounded-lg">
+                <Button variant="default" size="sm" className="rounded-lg h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm">
                   Sign In
                 </Button>
               </SignInButton>
             )
           ) : (
-            <div className="w-9 h-9 rounded-full bg-muted animate-pulse" />
+            <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-muted animate-pulse" />
           )}
 
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="md:hidden h-8 w-8"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle Menu"
           >

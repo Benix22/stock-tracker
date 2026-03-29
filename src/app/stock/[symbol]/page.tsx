@@ -34,8 +34,8 @@ export default async function StockDetailPage({ params }: PageProps) {
     }
 
     return (
-        <div className="min-h-screen bg-background p-8">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-background p-4 md:p-8">
+            <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
                 <Link href="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground">
                     <ArrowLeftIcon className="mr-2 h-4 w-4" />
                     Back to Dashboard
