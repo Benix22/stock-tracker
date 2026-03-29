@@ -4,8 +4,10 @@ import { StockNews } from "@/components/StockNews";
 import { StockFundamentals } from "@/components/StockFundamentals";
 import { AIPrediction } from "@/components/AIPrediction";
 import { StockComments } from "@/components/StockComments";
+import { StockCalendarLink } from "@/components/StockCalendarLink";
 import Link from "next/link";
 import { ArrowLeft as ArrowLeftIcon } from "lucide-react";
+import { checkMarketOpen } from "@/lib/market";
 
 interface PageProps {
     params: Promise<{ symbol: string }>;
@@ -21,6 +23,8 @@ export default async function StockDetailPage({ params }: PageProps) {
         getStockRecommendations(decodedSymbol),
         getStockProfile(decodedSymbol)
     ]);
+
+    const isMarketOpen = checkMarketOpen();
 
     const isIndex = decodedSymbol.startsWith('^') || decodedSymbol === 'FTSEMIB.MI';
 
@@ -52,10 +56,16 @@ export default async function StockDetailPage({ params }: PageProps) {
                         </div>
                     )}
                     <div>
-                        <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
+                        <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3 flex-wrap">
                             {quote?.name || decodedSymbol} ({decodedSymbol})
                             {!isIndex && !decodedSymbol.includes('=') && !decodedSymbol.includes('-') && (
-                                <span className="flex h-3 w-3 rounded-full bg-emerald-500 animate-pulse border-2 border-background shadow-sm" title="Alpaca Real-time" />
+                                <>
+                                    <span 
+                                        className={`flex h-3 w-3 rounded-full border-2 border-background shadow-sm shrink-0 ${isMarketOpen ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} 
+                                        title={isMarketOpen ? "Market Open (Alpaca Real-time)" : "Market Closed (Last Price)"} 
+                                    />
+                                    <StockCalendarLink symbol={decodedSymbol} />
+                                </>
                             )}
                         </h1>
                         <p className="text-muted-foreground">Real-time intraday values</p>

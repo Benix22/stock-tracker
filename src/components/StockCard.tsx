@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowUpIcon, ArrowDownIcon } from "lucide-react"
 import Link from "next/link"
+import { checkMarketOpen } from "@/lib/market"
 import { FlashingDigits } from "@/components/FlashingDigits"
 
 interface StockData {
@@ -22,7 +23,16 @@ export function StockCard({ stock }: StockCardProps) {
     const decimals = stock.symbol === 'EUR=X' ? 4 : 2;
 
     const [flashBg, setFlashBg] = useState("");
+    const [isMarketOpen, setIsMarketOpen] = useState(true);
     const prevPriceRef = useRef(stock.price);
+
+    useEffect(() => {
+        setIsMarketOpen(checkMarketOpen());
+        const interval = setInterval(() => {
+            setIsMarketOpen(checkMarketOpen());
+        }, 60000);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         if (stock.price !== prevPriceRef.current) {
@@ -60,7 +70,10 @@ export function StockCard({ stock }: StockCardProps) {
                             <CardTitle className="text-base font-bold leading-none truncate flex items-center gap-2">
                                 {stock.symbol}
                                 {!stock.symbol.includes('=') && !stock.symbol.includes('^') && !stock.symbol.includes('-') && (
-                                    <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Alpaca Real-time" />
+                                    <span 
+                                        className={`flex h-2 w-2 rounded-full shrink-0 ${isMarketOpen ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} 
+                                        title={isMarketOpen ? "Market Open (Alpaca Real-time)" : "Market Closed (Last Price)"} 
+                                    />
                                 )}
                             </CardTitle>
                             <p className="text-[10px] text-muted-foreground uppercase mt-0.5 font-medium truncate">

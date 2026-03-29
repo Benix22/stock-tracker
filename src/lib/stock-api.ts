@@ -69,6 +69,15 @@ export interface StockProfile {
     description?: string;
 }
 
+export interface CalendarEvent {
+    type: 'Earnings' | 'Dividend' | 'Split' | 'Other';
+    date: string;
+    title: string;
+    symbol?: string;
+    description?: string;
+    value?: string;
+}
+
 import { getRealTimeQuote, getBatchRealTimeQuotes } from './alpaca';
 
 export async function getStockQuote(symbol: string): Promise<StockData | null> {
@@ -584,4 +593,130 @@ export async function getStockLogo(symbol: string): Promise<string | undefined> 
     }
 
     return undefined;
+}
+
+export async function getStockCalendar(symbol: string): Promise<CalendarEvent[]> {
+    try {
+        const result = await yahooFinance.quoteSummary(symbol, {
+            modules: ['calendarEvents', 'defaultKeyStatistics', 'summaryDetail', 'upgradeDowngradeHistory', 'earnings']
+        });
+
+        const events: CalendarEvent[] = [];
+
+        // 1. Earnings
+        if (result.calendarEvents?.earnings) {
+            const e = result.calendarEvents.earnings;
+            if (e.earningsDate && e.earningsDate.length > 0) {
+                e.earningsDate.forEach((date: Date) => {
+                    events.push({
+                        type: 'Earnings',
+                        date: date.toISOString(),
+                        title: 'Earnings Call / Report',
+                        description: `Estimated EPS: ${e.earningsAverage || 'N/A'}. Market usually reacts strongly to this report.`,
+                        value: e.earningsAverage?.toString()
+                    });
+                });
+            }
+        }
+
+        // 2. Earnings Guidance from earnings module
+        if (result.earnings?.earningsChart?.earningsDate?.[0]) {
+            const date = result.earnings.earningsChart.earningsDate[0];
+            const alreadyIn = events.find(e => e.type === 'Earnings' && new Date(e.date).getTime() === date.getTime());
+            if (!alreadyIn) {
+                events.push({
+                    type: 'Earnings',
+                    date: date.toISOString(),
+                    title: 'Upcoming Earnings Release',
+                    description: 'Scheduled disclosure of quarterly profits and revenue guidance.'
+                });
+            }
+        }
+
+        // 3. Ex-Dividend
+        if (result.calendarEvents?.exDividendDate) {
+            events.push({
+                type: 'Dividend',
+                date: result.calendarEvents.exDividendDate.toISOString(),
+                title: 'Ex-Dividend Date',
+                description: 'Last day to buy shares to be entitled to the next dividend payment.'
+            });
+        }
+
+        // 4. Dividends from summaryDetail
+        const divDate = result.summaryDetail?.exDividendDate;
+        if (divDate && divDate > new Date()) {
+             if (!events.find(e => e.type === 'Dividend' && e.date === divDate.toISOString())) {
+                 events.push({
+                     type: 'Dividend',
+                     date: divDate.toISOString(),
+                     title: 'Dividend Payout Milestone',
+                     description: 'Expected date for dividend entitlement adjustment.'
+                 });
+             }
+        }
+
+        // 5. Analyst Recommendation Changes (M&A and Guidance are often hidden here)
+        if (result.upgradeDowngradeHistory?.history) {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            const recentRecs = result.upgradeDowngradeHistory.history
+                .filter((r: any) => new Date(r.epochGradeDate).getTime() >= thirtyDaysAgo.getTime())
+                .slice(0, 5); // Take last 5 most recent
+
+            recentRecs.forEach((rec: any) => {
+                events.push({
+                    type: 'Other',
+                    date: new Date(rec.epochGradeDate).toISOString(),
+                    title: `Analyst Change: ${rec.firm}`,
+                    description: `Revised to ${rec.toGrade} (from ${rec.fromGrade}). This reflects institutional sentiment changes.`
+                });
+            });
+        }
+
+        // 6. Split Check (historical or upcoming)
+        const stats = result.defaultKeyStatistics;
+        const lastSplitDate = stats?.lastSplitDate;
+        if (lastSplitDate && stats) {
+            const splitDate = new Date(lastSplitDate);
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            if (splitDate >= oneMonthAgo) {
+                 events.push({
+                    type: 'Split',
+                    date: splitDate.toISOString(),
+                    title: `Stock Split: ${stats.lastSplitFactor}`,
+                    description: 'Recent stock split executed. Price and share count been adjusted accordingly.'
+                 });
+            }
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        return events
+            .filter(e => new Date(e.date) >= today)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    } catch (error) {
+        console.error(`Failed to fetch calendar for ${symbol}:`, error);
+        return [];
+    }
+}
+
+export async function getBatchStockCalendar(symbols: string[]): Promise<CalendarEvent[]> {
+    if (!symbols || symbols.length === 0) return [];
+    
+    // Limits to unique symbols
+    const uniqueSymbols = Array.from(new Set(symbols.map(s => s.toUpperCase())));
+    
+    const promises = uniqueSymbols.map(async (symbol) => {
+        const events = await getStockCalendar(symbol);
+        return events.map(e => ({ ...e, symbol }));
+    });
+    
+    const results = await Promise.all(promises);
+    const flattened = results.flat();
+    
+    return flattened.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }

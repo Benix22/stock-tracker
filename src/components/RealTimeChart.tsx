@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react";
+import { checkMarketOpen } from "@/lib/market";
 import { Area, ComposedChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ReferenceLine } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getIntradayData } from "@/actions/stock";
@@ -72,6 +73,15 @@ export function RealTimeChart({
     const [loading, setLoading] = useState(false);
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [gapCount, setGapCount] = useState(0);
+    const [isMarketOpen, setIsMarketOpen] = useState(true);
+
+    useEffect(() => {
+        setIsMarketOpen(checkMarketOpen());
+        const interval = setInterval(() => {
+            setIsMarketOpen(checkMarketOpen());
+        }, 30000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Use customData if provided, otherwise manage internal state with polling
     const isCustom = !!customData;
@@ -222,12 +232,15 @@ export function RealTimeChart({
         return (
             <Card className="w-full">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        {symbol} {isCustom ? 'History' : 'Intraday'}
-                        {!isCustom && !symbol.includes('=') && !symbol.includes('^') && !symbol.includes('-') && (
-                            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Alpaca Real-time" />
-                        )}
-                    </CardTitle>
+                        <div className="flex items-center gap-2">
+                            {symbol} {isCustom ? 'History' : 'Intraday'}
+                            {!isCustom && !symbol.includes('=') && !symbol.includes('^') && !symbol.includes('-') && (
+                                <span 
+                                    className={`flex h-2 w-2 rounded-full shrink-0 ${isMarketOpen ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} 
+                                    title={isMarketOpen ? "Market Open (Alpaca Real-time)" : "Market Closed (Last Price)"} 
+                                />
+                            )}
+                        </div>
                 </CardHeader>
                 <CardContent>No data available</CardContent>
             </Card>
@@ -287,7 +300,10 @@ export function RealTimeChart({
                         <div className="flex items-center gap-2">
                             <span className="text-base md:text-lg">{symbol} {isCustom ? 'History' : `Today (${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`}</span>
                             {!isCustom && !symbol.includes('=') && !symbol.includes('^') && !symbol.includes('-') && (
-                                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Alpaca Real-time" />
+                                <span 
+                                    className={`flex h-2 w-2 rounded-full shrink-0 ${isMarketOpen ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} 
+                                    title={isMarketOpen ? "Market Open (Alpaca Real-time)" : "Market Closed (Last Price)"} 
+                                />
                             )}
                         </div>
                         {isComparisonMode && (

@@ -7,6 +7,7 @@ import { getBatchStockQuotes } from "@/actions/stock";
 import { useAuth, UserButton } from "@clerk/nextjs";
 import { getPositions, addOrUpdatePosition, deletePosition } from "@/actions/portfolio-db";
 import { getPortfolioSummary } from "@/actions/portfolio-ai";
+import { PortfolioCalendar } from "@/components/PortfolioCalendar";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const fmtCurrency = (n, currency = "USD") =>
@@ -416,6 +417,7 @@ export default function PortfolioPage() {
           </div>
         )}
 
+
         {/* Positions table */}
         {positions.length > 0 && (
           <div className="overflow-x-auto rounded-2xl border bg-card shadow-sm scrollbar-thin scrollbar-thumb-muted-foreground/20">
@@ -529,6 +531,13 @@ export default function PortfolioPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Portfolio Calendar / Roadmap */}
+        {positions.length > 0 && (
+          <div className="mt-8">
+            <PortfolioCalendar symbols={positions.map(p => p.ticker)} />
           </div>
         )}
 
