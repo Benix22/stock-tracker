@@ -18,7 +18,7 @@ export function MarketOverviewCards() {
     ])
 
     const [commodities, setCommodities] = useState([
-        { name: "Brent oil (Cash)", symbol: "BZ=F", price: 100.81, unit: "USD / barrel", change: 0.82, isPos: true, icon: "💧" },
+        { name: "Brent Crude Oil", symbol: "BZ=F", price: 82.50, unit: "USD/Bbl", change: 0.82, isPos: true, icon: "💧" },
         { name: "Natural gas", symbol: "NG=F", price: 3.304, unit: "USD / million BTUs", change: -3.93, isPos: false, icon: "🔥" },
         { name: "Gold", symbol: "GC=F", price: 5088.6, unit: "USD / troy ounce", change: 1.59, isPos: true, icon: "🥇" },
         { name: "Copper", symbol: "HG=F", price: 5.787, unit: "USD / pound", change: 1.68, isPos: true, icon: "🧱" },
@@ -43,15 +43,6 @@ export function MarketOverviewCards() {
 
             setCommodities(prev => prev.map(s => {
                 const q = quotes.find(quote => quote.symbol === s.symbol)
-                if (!q) return s;
-
-                // Special handling for Brent Spot (USDBRO) vs Futures (BZ=F)
-                if (s.symbol === "BZ=F") {
-                    const spotBase = 100.81;
-                    const extrapolatedPrice = spotBase * (1 + q.changePercent / 100);
-                    return { ...s, price: extrapolatedPrice, change: q.changePercent, isPos: q.change >= 0 };
-                }
-
                 return q ? { ...s, price: q.price, change: q.changePercent, isPos: q.change >= 0 } : s
             }))
 

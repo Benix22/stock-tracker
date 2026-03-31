@@ -94,14 +94,14 @@ export async function getLeagueLeaderboard() {
   let quotesMap: Record<string, number> = {};
   if (allSymbols.length > 0) {
     const { getBatchStockQuotes } = await import("@/actions/stock");
-    const quotes = await getBatchStockQuotes(allSymbols);
+    const quotes = await getBatchStockQuotes(allSymbols as string[]);
     quotes.forEach(q => quotesMap[q.symbol] = q.price);
   }
 
   const results = participants.map(p => {
     const userPositions = positionsWithParticipant.filter(pos => pos.league_participants.id === p.id);
     const stockValue = userPositions.reduce((acc, pos) => {
-      const price = quotesMap[pos.league_positions.symbol] || pos.league_positions.avgPrice;
+      const price = quotesMap[pos.league_positions.symbol] || pos.league_positions.avgPrice || 0;
       return acc + (pos.league_positions.shares * price);
     }, 0);
     
@@ -119,6 +119,9 @@ export async function executeLeagueTrade({ participantId, symbol, shares, price,
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  if (isNaN(shares) || shares <= 0) throw new Error("Invalid share quantity");
+  if (isNaN(price) || price < 0) throw new Error("Invalid price");
+
   const participant = await db.query.leagueParticipants.findFirst({
     where: eq(leagueParticipants.id, participantId)
   });
@@ -126,6 +129,7 @@ export async function executeLeagueTrade({ participantId, symbol, shares, price,
   if (!participant || participant.userId !== userId) throw new Error("Unauthorized or not in league");
 
   const totalCost = shares * price;
+  if (isNaN(totalCost)) throw new Error("Invalid transaction amount");
 
   if (type === 'BUY') {
     if (participant.cashBalance < totalCost) throw new Error("Insufficient cash");

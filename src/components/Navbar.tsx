@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
-import { LayoutDashboard, Briefcase, Grid3X3, LineChart, Menu, X, ChevronRight, Trophy } from "lucide-react";
+import { LayoutDashboard, Briefcase, Grid3X3, LineChart, Menu, X, ChevronRight, Trophy, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {

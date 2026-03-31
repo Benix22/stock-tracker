@@ -93,7 +93,7 @@ export async function getStockQuote(symbol: string): Promise<StockData | null> {
             price: quote.regularMarketPrice ?? 0,
             change: quote.regularMarketChange ?? 0,
             changePercent: quote.regularMarketChangePercent ?? 0,
-            name: quote.shortName || quote.longName || symbol,
+            name: symbol === 'BZ=F' ? 'Brent Crude Oil' : (quote.shortName || quote.longName || symbol),
             marketCap: quote.marketCap,
             fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
             fiftyTwoWeekLow: quote.fiftyTwoWeekLow,

@@ -32,7 +32,12 @@ export default async function LeaguePage() {
     // Calculate days remaining in month
     const now = new Date();
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const isLastDay = now.getDate() === lastDay.getDate();
     const daysRemaining = Math.max(0, lastDay.getDate() - now.getDate());
+
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const currentMonthName = monthNames[now.getMonth()];
+    const currentYear = now.getFullYear();
 
     return (
         <div className="min-h-screen bg-[#030303] text-white p-4 md:p-8 animate-in fade-in duration-700">
@@ -40,7 +45,7 @@ export default async function LeaguePage() {
 
                 {/* Hero Section */}
                 <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-900/40 via-purple-900/20 to-transparent border border-white/10 p-8 md:p-12 shadow-2xl">
-                    <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12 pointer-events-none">
+                    <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12 pointer-events-none text-white">
                         <Trophy className="w-64 h-64" />
                     </div>
 
@@ -48,7 +53,7 @@ export default async function LeaguePage() {
                         <div className="space-y-4 text-center md:text-left">
                             <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-[0.2em]">
                                 <Sparkles className="w-4 h-4" />
-                                March 2026 Season
+                                {currentMonthName} {currentYear} Season
                             </div>
                             <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-none">
                                 TRADERS <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400">LEAGUE</span>
@@ -58,10 +63,16 @@ export default async function LeaguePage() {
                             </p>
                         </div>
 
-                        <div className="flex flex-col items-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-inner min-w-[240px]">
-                            <Timer className="w-8 h-8 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] mb-2" />
-                            <div className="text-4xl font-black tabular-nums text-white">{daysRemaining}</div>
-                            <div className="text-[10px] uppercase tracking-[0.3em] font-bold text-zinc-400">Days Remaining</div>
+                        <div className={`flex flex-col items-center bg-white/5 backdrop-blur-xl border ${isLastDay ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)] animate-pulse' : 'border-white/10'} rounded-3xl p-8 shadow-inner min-w-[240px]`}>
+                            <Timer className={`w-8 h-8 ${isLastDay ? 'text-amber-500 shadow-lg' : 'text-zinc-500'} mb-2`} />
+                            {isLastDay ? (
+                                <div className="text-2xl font-black tabular-nums text-amber-500 tracking-tighter uppercase">Final Session</div>
+                            ) : (
+                                <div className="text-4xl font-black tabular-nums text-white">{daysRemaining}</div>
+                            )}
+                            <div className="text-[10px] uppercase tracking-[0.3em] font-bold text-zinc-400 mt-1">
+                                {isLastDay ? "Closing at midnight" : "Days Remaining"}
+                            </div>
                         </div>
                     </div>
                 </div>
