@@ -23,11 +23,30 @@ export async function sendTestEmail() {
         const templatePath = path.join(process.cwd(), 'public', 'email.html');
         let htmlContent = fs.readFileSync(templatePath, 'utf8');
 
+        // Fetch interest rates with fallback
+        let fedRate = "5.50";
+        let ecbRate = "4.50";
+        try {
+            const { getInterestRates } = await import('./trading-economics');
+            const rates = await getInterestRates();
+            const fed = rates.find(r => r.country.includes("United States"));
+            const ecb = rates.find(r => r.country.includes("Euro Area"));
+            if (fed) fedRate = fed.value.toFixed(2);
+            if (ecb) ecbRate = ecb.value.toFixed(2);
+        } catch (e) {
+            console.warn("Using fallback interest rates for test email");
+        }
+
+        const finalHtml = htmlContent
+            .replace('[[LEAGUE_URL]]', `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/league`)
+            .replace('[[FED_RATE]]', fedRate)
+            .replace('[[ECB_RATE]]', ecbRate);
+
         const { data, error } = await resend.emails.send({
             from: 'Traders League <onboarding@resend.dev>',
             to: emailAddress,
             subject: '🧪 TEST: Traders League Season Launch',
-            html: htmlContent.replace('[[LEAGUE_URL]]', `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/league`),
+            html: finalHtml,
         });
 
         if (error) return { success: false, error: error.message };
@@ -59,17 +78,36 @@ export async function broadcastNewSeason() {
         const templatePath = path.join(process.cwd(), 'public', 'email.html');
         let htmlContent = fs.readFileSync(templatePath, 'utf8');
 
-        // 3. Prepare the emails (Resend batch is efficient)
+        // 3. Fetch interest rates for the broadcast
+        let fedRate = "5.50";
+        let ecbRate = "4.50";
+        try {
+            const { getInterestRates } = await import('./trading-economics');
+            const rates = await getInterestRates();
+            const fed = rates.find(r => r.country.includes("United States"));
+            const ecb = rates.find(r => r.country.includes("Euro Area"));
+            if (fed) fedRate = fed.value.toFixed(2);
+            if (ecb) ecbRate = ecb.value.toFixed(2);
+        } catch (e) {
+            console.warn("Using fallback interest rates for broadcast");
+        }
+
+        // 4. Prepare the emails (Resend batch is efficient)
         // Note: In Resend free/test mode, you can only send to yourself/verified emails.
         const emails = users.map(user => {
             const emailAddress = user.emailAddresses[0]?.emailAddress;
             if (!emailAddress) return null;
 
+            const personalizedHtml = htmlContent
+                .replace('[[LEAGUE_URL]]', `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/league`)
+                .replace('[[FED_RATE]]', fedRate)
+                .replace('[[ECB_RATE]]', ecbRate);
+
             return {
                 from: 'Traders League <onboarding@resend.dev>', // Update to your verified domain later
                 to: emailAddress,
                 subject: '🏆 Your $100,000 Portfolio is Ready (New Season Starts Day 1)',
-                html: htmlContent.replace('[[LEAGUE_URL]]', `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/league`),
+                html: personalizedHtml,
             };
         }).filter(Boolean);
 

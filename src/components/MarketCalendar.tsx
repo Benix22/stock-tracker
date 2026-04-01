@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Globe, Landmark, TrendingUp, Users, Activity, ChevronRight, Info, Zap, Scale } from "lucide-react";
 import { format, isSameDay } from "date-fns";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { 
     Dialog, 
     DialogContent, 
@@ -60,8 +60,19 @@ const ALL_EVENTS: MacroEvent[] = [
 ];
 
 export function MarketCalendar() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const [mounted, setMounted] = useState(false);
+    
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const today = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
+
+    // ... rest of the functions
 
     const getDetailedInfo = (type: MacroEvent['type']) => {
         switch (type) {
@@ -104,6 +115,22 @@ export function MarketCalendar() {
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
             .slice(0, 10);
     }, [today]);
+
+    if (!mounted) return (
+        <Card className="w-full overflow-hidden group">
+            <CardHeader className="flex flex-row items-center justify-between py-4">
+                <div className="space-y-1">
+                    <CardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-primary" />
+                        Global Macro Events
+                    </CardTitle>
+                </div>
+            </CardHeader>
+            <CardContent className="h-[400px] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </CardContent>
+        </Card>
+    );
 
     return (
         <Card className="w-full overflow-hidden group">
