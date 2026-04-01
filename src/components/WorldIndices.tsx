@@ -10,7 +10,7 @@ import Link from "next/link";
 import { InterestRate } from "@/actions/trading-economics";
 import { getUSInterestRate, getFredSeries } from "@/actions/fred";
 import { getECBInterestRate } from "@/actions/ecb";
-import { getEurostatSeries } from "@/actions/eurostat";
+import { getEurostatSeries, getEurostatBatch } from "@/actions/eurostat";
 
 interface IndexInfo {
     symbol: string;
@@ -30,70 +30,70 @@ const INDICES_CONFIG: IndexInfo[] = [
     { symbol: "^N225", name: "Nikkei 225", region: "Asia", countryCode: "jp" }
 ];
 
+const EURO_COUNTRIES = ["AT", "BE", "HR", "CY", "EE", "FI", "FR", "DE", "GR", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PT", "SK", "SI", "ES"];
+
 interface MacroDef { 
     source: 'FRED' | 'EUROSTAT';
     id: string; 
-    units?: string; // For FRED
-    params?: Record<string, string>; // For Eurostat
+    units?: string; 
+    params?: Record<string, string>; 
     isCurrency?: boolean; 
     isPercent?: boolean; 
 }
 
 const INDICATOR_SERIES: Record<string, Record<string, MacroDef>> = {
     "us": { 
-        "pib": { source: 'FRED', id: "A191RL1Q225SBEA", isPercent: true }, // % Change QoQ
-        "ipc": { source: 'FRED', id: "CPIAUCSL", units: "pc1", isPercent: true }, // % Change YoY
+        "pib": { source: 'FRED', id: "A191RL1Q225SBEA", isPercent: true },
+        "ipc": { source: 'FRED', id: "CPIAUCSL", units: "pc1", isPercent: true },
         "paro": { source: 'FRED', id: "UNRATE", isPercent: true }, 
         "balanza": { source: 'FRED', id: "BOPGSTB", isCurrency: true }, 
         "pmi": { source: 'FRED', id: "PRMNTO01USM657S" } 
-    },
-    "es": { 
-        "pib": { source: 'EUROSTAT', id: "namq_10_gdp", params: { geo: 'ES', unit: 'CLV_PCH_PRE', na_item: 'B1GQ', s_adj: 'SCA', lastTimePeriod: '1' }, isPercent: true }, 
-        "ipc": { source: 'EUROSTAT', id: "prc_hicp_manr", params: { geo: 'ES', coicop: 'CP00', lastTimePeriod: '1' }, isPercent: true }, 
-        "paro": { source: 'EUROSTAT', id: "une_rt_m", params: { geo: 'ES', age: 'TOTAL', unit: 'PC_ACT', s_adj: 'SA', lastTimePeriod: '1' }, isPercent: true }, 
-        "balanza": { source: 'EUROSTAT', id: "namq_10_gdp", params: { geo: 'ES', unit: 'CP_MEUR', na_item: 'B11', s_adj: 'SCA', lastTimePeriod: '1' }, isCurrency: true }, 
-        "pmi": { source: 'EUROSTAT', id: "ei_isbs_m", params: { geo: 'ES', indic: 'BS-ESI-I', s_adj: 'SA', lastTimePeriod: '1' } } 
-    },
-    "default": {
-        "pib": { source: 'EUROSTAT', id: "namq_10_gdp", params: { geo: 'EU27_2020', unit: 'CLV_PCH_PRE', na_item: 'B1GQ', s_adj: 'SCA', lastTimePeriod: '1' }, isPercent: true },
-        "ipc": { source: 'EUROSTAT', id: "prc_hicp_manr", params: { geo: 'EU27_2020', coicop: 'CP00', lastTimePeriod: '1' }, isPercent: true },
-        "paro": { source: 'EUROSTAT', id: "une_rt_m", params: { geo: 'EU27_2020', age: 'TOTAL', unit: 'PC_ACT', s_adj: 'SA', lastTimePeriod: '1' }, isPercent: true },
-        "balanza": { source: 'EUROSTAT', id: "namq_10_gdp", params: { geo: 'EU27_2020', unit: 'CP_MEUR', na_item: 'B11', s_adj: 'SCA', lastTimePeriod: '1' }, isCurrency: true },
-        "pmi": { source: 'EUROSTAT', id: "ei_isbs_m", params: { geo: 'EU27_2020', indic: 'BS-ESI-I', s_adj: 'SA', lastTimePeriod: '1' } }
     }
 };
 
-const IND_MAP: Record<string, string> = { "eu": "eu", "de": "default", "fr": "default", "it": "default", "jp": "default" };
-
 // --- Sub-components ---
 
-const MacroIndicators = memo(({ countryCode }: { countryCode: string }) => {
-    const [indicators, setIndicators] = useState<Record<string, { val: number | null, config: MacroDef }>>({});
+const MacroIndicators = memo(({ countryCode, eurostatData }: { countryCode: string, eurostatData?: Record<string, Record<string, number | null>> }) => {
+    const [indicators, setIndicators] = useState<Record<string, { val: number | null, source: string, isCurrency?: boolean, isPercent?: boolean }>>({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchMacro = async () => {
-            const seriesMap = INDICATOR_SERIES[countryCode] || INDICATOR_SERIES[IND_MAP[countryCode]] || INDICATOR_SERIES["default"];
+            const countryKey = countryCode.toUpperCase();
+            
+            // If it's a Euro country and we have batch data, use it
+            if (eurostatData && EURO_COUNTRIES.includes(countryKey)) {
+                const results: Record<string, any> = {
+                    "pib": { val: eurostatData.pib?.[countryKey] ?? null, source: 'EUROSTAT', isPercent: true },
+                    "ipc": { val: eurostatData.ipc?.[countryKey] ?? null, source: 'EUROSTAT', isPercent: true },
+                    "paro": { val: eurostatData.paro?.[countryKey] ?? null, source: 'EUROSTAT', isPercent: true },
+                    "balanza": { val: eurostatData.balanza?.[countryKey] ?? null, source: 'EUROSTAT', isCurrency: true },
+                    "pmi": { val: eurostatData.pmi?.[countryKey] ?? null, source: 'EUROSTAT' }
+                };
+                setIndicators(results);
+                setLoading(false);
+                return;
+            }
+
+            // Fallback for US or other non-batch countries
+            const seriesMap = INDICATOR_SERIES[countryCode] || INDICATOR_SERIES["us"]; 
             try {
                 const results = await Promise.all(Object.entries(seriesMap).map(async ([key, config]) => {
                     let val = null;
                     if (config.source === 'FRED') {
                         const data = await getFredSeries(config.id, config.units);
                         val = data?.value ?? null;
-                    } else if (config.source === 'EUROSTAT') {
-                        const data = await getEurostatSeries(config.id, config.params || {});
-                        val = data?.value ?? null;
                     }
-                    return { key, val, config };
+                    return { key, val, isCurrency: config.isCurrency, isPercent: config.isPercent };
                 }));
                 const newIndicators: Record<string, any> = {};
-                results.forEach(res => newIndicators[res.key] = { val: res.val, config: res.config });
+                results.forEach(res => newIndicators[res.key] = { val: res.val, isCurrency: res.isCurrency, isPercent: res.isPercent });
                 setIndicators(newIndicators);
             } catch (e) { console.error("Macro fetch error", e); }
             finally { setLoading(false); }
         };
         fetchMacro();
-    }, [countryCode]);
+    }, [countryCode, eurostatData]);
 
     if (loading) return (
         <div className="grid grid-cols-2 gap-y-2 border-t border-border pt-3 mt-1 opacity-50 animate-pulse">
@@ -104,16 +104,15 @@ const MacroIndicators = memo(({ countryCode }: { countryCode: string }) => {
     return (
         <div className="grid grid-cols-2 gap-y-2 border-t border-border pt-3 mt-1">
             {Object.entries(indicators).map(([key, data]) => {
-                if (!data) return null;
                 const label = key.toUpperCase();
                 let displayVal = "-";
                 
                 if (data.val !== null && data.val !== undefined) {
-                    if (data.config.isCurrency) {
+                    if (data.isCurrency) {
                         const absVal = Math.abs(data.val);
                         const formatted = absVal.toLocaleString('es-ES', { maximumFractionDigits: 0 });
-                        displayVal = `${data.val < 0 ? '-' : ''}$${formatted} Millones`;
-                    } else if (data.config.isPercent) {
+                        displayVal = `${data.val < 0 ? '-' : ''}$${formatted}M`;
+                    } else if (data.isPercent) {
                         displayVal = `${data.val.toFixed(2)}%`;
                     } else {
                         displayVal = data.val.toFixed(1);
@@ -170,6 +169,7 @@ StockIndexHeader.displayName = "StockIndexHeader";
 export function WorldIndices() {
     const [indicesData, setIndicesData] = useState<(StockData & IndexInfo)[]>([]);
     const [interestRates, setInterestRates] = useState<InterestRate[]>([]);
+    const [eurostatData, setEurostatData] = useState<Record<string, Record<string, number | null>>>({});
     const [flashStates, setFlashStates] = useState<Record<string, string>>({});
     const prevPrices = useRef<Record<string, number>>({});
 
@@ -204,8 +204,22 @@ export function WorldIndices() {
         } catch (error) { console.error("Rate fetch error", error); }
     };
 
+    const fetchEurostatBatchMacro = async () => {
+        try {
+            const geos = EURO_COUNTRIES;
+            const [pib, ipc, paro, balanza, pmi] = await Promise.all([
+                getEurostatBatch("namq_10_gdp", { geo: geos, unit: 'CLV_PCH_PRE', na_item: 'B1GQ', s_adj: 'SCA', lastTimePeriod: '4' }),
+                getEurostatBatch("prc_hicp_manr", { geo: geos, coicop: 'CP00', lastTimePeriod: '4' }),
+                getEurostatBatch("une_rt_m", { geo: geos, age: 'TOTAL', unit: 'PC_ACT', s_adj: 'SA', lastTimePeriod: '4' }),
+                getEurostatBatch("teiet215", { geo: geos, stk_flow: 'BAL_RT', lastTimePeriod: '4' }),
+                getEurostatBatch("ei_isbs_m", { geo: geos, indic: 'BS-ESI-I', s_adj: 'SA', lastTimePeriod: '4' })
+            ]);
+            setEurostatData({ pib, ipc, paro, balanza, pmi });
+        } catch (e) { console.error("Eurostat batch fetch fail", e); }
+    };
+
     useEffect(() => {
-        fetchIndices(); fetchRates();
+        fetchIndices(); fetchRates(); fetchEurostatBatchMacro();
         const indexInterval = setInterval(fetchIndices, 10000);
         const ratesInterval = setInterval(fetchRates, 3600000);
         return () => { clearInterval(indexInterval); clearInterval(ratesInterval); };
@@ -249,7 +263,7 @@ export function WorldIndices() {
                         <Card className={`w-full h-full transition-colors duration-1000 relative overflow-hidden ${flashStates[index.symbol] || ""} hover:bg-accent/50 cursor-pointer flex flex-col`}>
                             <StockIndexHeader index={index} flashClass={flashStates[index.symbol] || ""} />
                             <div className="px-4 pb-4">
-                                <MacroIndicators countryCode={index.countryCode} />
+                                <MacroIndicators countryCode={index.countryCode} eurostatData={eurostatData} />
                             </div>
                         </Card>
                     </Link>
