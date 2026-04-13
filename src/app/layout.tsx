@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 
 import { ClerkProvider } from "@clerk/nextjs";
 import { Navbar } from "@/components/Navbar";
+import { EconomicNewsCarousel } from "@/components/EconomicNewsCarousel";
 
 export default function RootLayout({
   children,
@@ -29,9 +30,10 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased pt-20`}
+          className={`${geistSans.variable} ${geistMono.variable} antialiased pt-28`}
         >
           <Navbar />
+          <EconomicNewsCarousel />
           {children}
         </body>
       </html>
