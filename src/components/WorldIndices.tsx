@@ -166,7 +166,7 @@ const StockIndexHeader = memo(({ index, flashClass }: { index: StockData & Index
 });
 StockIndexHeader.displayName = "StockIndexHeader";
 
-export function WorldIndices() {
+export function WorldIndices({ showMacro = true }: { showMacro?: boolean }) {
     const [indicesData, setIndicesData] = useState<(StockData & IndexInfo)[]>([]);
     const [interestRates, setInterestRates] = useState<InterestRate[]>([]);
     const [eurostatData, setEurostatData] = useState<Record<string, Record<string, number | null>>>({});
@@ -219,18 +219,29 @@ export function WorldIndices() {
     };
 
     useEffect(() => {
-        fetchIndices(); fetchRates(); fetchEurostatBatchMacro();
+        fetchIndices(); 
+        fetchRates(); 
+        if (showMacro) {
+            fetchEurostatBatchMacro();
+        }
         const indexInterval = setInterval(fetchIndices, 10000);
         const ratesInterval = setInterval(fetchRates, 3600000);
         return () => { clearInterval(indexInterval); clearInterval(ratesInterval); };
-    }, []);
+    }, [showMacro]);
 
     if (indicesData.length === 0 && interestRates.length === 0) return null;
 
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 px-1">
-                <h2 className="text-xl font-bold tracking-tight">World Indices</h2>
+                <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold tracking-tight">World Indices</h2>
+                    {!showMacro && (
+                        <Link href="/world-indices" className="text-xs font-bold text-primary hover:underline flex items-center gap-1 group">
+                            View Macro Analysis <ArrowUpIcon className="w-3 h-3 rotate-45 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                        </Link>
+                    )}
+                </div>
                 {interestRates.length > 0 && (
                     <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-1 no-scrollbar">
                         {interestRates.map((rate) => {
@@ -262,9 +273,11 @@ export function WorldIndices() {
                     <Link key={index.symbol} href={`/stock/${index.symbol}`} className="block h-full">
                         <Card className={`w-full h-full transition-colors duration-1000 relative overflow-hidden ${flashStates[index.symbol] || ""} hover:bg-accent/50 cursor-pointer flex flex-col`}>
                             <StockIndexHeader index={index} flashClass={flashStates[index.symbol] || ""} />
-                            <div className="px-4 pb-4">
-                                <MacroIndicators countryCode={index.countryCode} eurostatData={eurostatData} />
-                            </div>
+                            {showMacro && (
+                                <div className="px-4 pb-4">
+                                    <MacroIndicators countryCode={index.countryCode} eurostatData={eurostatData} />
+                                </div>
+                            )}
                         </Card>
                     </Link>
                 ))}
@@ -272,3 +285,4 @@ export function WorldIndices() {
         </div>
     );
 }
+

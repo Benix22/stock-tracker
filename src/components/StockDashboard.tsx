@@ -146,7 +146,7 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
                 </div>
             </div>
 
-            <WorldIndices />
+            <WorldIndices showMacro={false} />
 
 
             <MarketOverviewCards />
