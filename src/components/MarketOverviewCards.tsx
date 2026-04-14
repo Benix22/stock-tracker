@@ -7,7 +7,9 @@ import { getBatchStockQuotes } from "@/actions/stock"
 import { FlashingDigits } from "@/components/FlashingDigits"
 import Link from "next/link"
 
-export function MarketOverviewCards() {
+import { OVERVIEW_SYMBOLS } from "@/lib/constants";
+
+export function MarketOverviewCards({ initialQuotes = [], disablePolling = false }: { initialQuotes?: any[], disablePolling?: boolean }) {
     const [cryptoData, setCryptoData] = useState({ price: 2.39, change: -6.72 })
     const [dxyData, setDxyData] = useState({ price: 98.801, change: 1.67 })
     const [currenciesData, setCurrenciesData] = useState({ price: 1.0854, change: 0.12 })
@@ -31,28 +33,32 @@ export function MarketOverviewCards() {
         { name: "AUD / USD", symbol: "AUDUSD=X", price: 0.6520, change: -0.12, icon: "A$" },
     ])
 
+    const processQuotes = (quotes: any[]) => {
+        if (!quotes || quotes.length === 0) return;
+
+        setCryptoStocks(prev => prev.map(s => {
+            const q = quotes.find(quote => quote.symbol === s.symbol)
+            return q ? { ...s, price: q.price, change: q.changePercent } : s
+        }))
+
+        setCommodities(prev => prev.map(s => {
+            const q = quotes.find(quote => quote.symbol === s.symbol)
+            return q ? { ...s, price: q.price, change: q.changePercent, isPos: q.change >= 0 } : s
+        }))
+
+        setCurrencies(prev => prev.map(s => {
+            const q = quotes.find(quote => quote.symbol === s.symbol)
+            return q ? { ...s, price: q.price, change: q.changePercent } : s
+        }))
+
+        const eur = quotes.find(q => q.symbol === "EURUSD=X")
+        if (eur) setCurrenciesData({ price: eur.price, change: eur.changePercent })
+    }
+
     const updateMarketData = async () => {
         try {
-            const symbols = ["BTC-USD", "ETH-USD", "BZ=F", "NG=F", "GC=F", "HG=F", "EURUSD=X", "GBPUSD=X", "JPY=X", "CHF=X", "AUDUSD=X"]
-            const quotes = await getBatchStockQuotes(symbols)
-
-            setCryptoStocks(prev => prev.map(s => {
-                const q = quotes.find(quote => quote.symbol === s.symbol)
-                return q ? { ...s, price: q.price, change: q.changePercent } : s
-            }))
-
-            setCommodities(prev => prev.map(s => {
-                const q = quotes.find(quote => quote.symbol === s.symbol)
-                return q ? { ...s, price: q.price, change: q.changePercent, isPos: q.change >= 0 } : s
-            }))
-
-            setCurrencies(prev => prev.map(s => {
-                const q = quotes.find(quote => quote.symbol === s.symbol)
-                return q ? { ...s, price: q.price, change: q.changePercent } : s
-            }))
-
-            const eur = quotes.find(q => q.symbol === "EURUSD=X")
-            if (eur) setCurrenciesData({ price: eur.price, change: eur.changePercent })
+            const quotes = await getBatchStockQuotes(OVERVIEW_SYMBOLS)
+            processQuotes(quotes)
 
             const simulateUpdate = (prev: number) => {
                 const variation = (Math.random() - 0.5) * 0.005
@@ -68,13 +74,19 @@ export function MarketOverviewCards() {
     }
 
     useEffect(() => {
-        // Initial fetch
-        updateMarketData()
+        if (initialQuotes && initialQuotes.length > 0) {
+            processQuotes(initialQuotes);
+        } else {
+            updateMarketData()
+        }
 
-        const interval = setInterval(updateMarketData, 5000)
+        if (!disablePolling) {
+            const interval = setInterval(updateMarketData, 5000)
+            return () => clearInterval(interval)
+        }
+    }, [initialQuotes, disablePolling])
 
-        return () => clearInterval(interval)
-    }, [])
+
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

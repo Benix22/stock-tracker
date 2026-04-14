@@ -8,11 +8,12 @@ import { fetchStockData, getBatchStockQuotes } from "@/actions/stock";
 import { SearchHistoryInput } from "@/components/SearchHistoryInput";
 import { getSearchHistory, addToSearchHistory } from "@/actions/history";
 
-import { MarketOverviewCards } from "@/components/MarketOverviewCards";
-import { WorldIndices } from "@/components/WorldIndices";
 import Link from "next/link";
 import { ChevronRight, LineChart, Briefcase } from "lucide-react";
 import { UserButton, SignInButton, useUser } from "@clerk/nextjs";
+import { OVERVIEW_SYMBOLS } from "@/lib/constants";
+import { MarketOverviewCards } from "@/components/MarketOverviewCards";
+import { WorldIndices } from "@/components/WorldIndices";
 
 interface StockDashboardProps {
     initialStocks: {
@@ -20,9 +21,11 @@ interface StockDashboardProps {
         quote: StockData | null;
         history: HistoricalDataPoint[];
     }[];
+    initialIndices?: any[];
+    initialOverviewQuotes?: any[];
 }
 
-export function StockDashboard({ initialStocks }: StockDashboardProps) {
+export function StockDashboard({ initialStocks, initialIndices = [], initialOverviewQuotes = [] }: StockDashboardProps) {
     const [stocks, setStocks] = useState(initialStocks);
     const [history, setHistory] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
@@ -30,24 +33,26 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
     const [searchInput, setSearchInput] = useState("");
     const { isSignedIn, isLoaded } = useUser();
 
+    const [indices, setIndices] = useState(initialIndices);
+    const [overviewQuotes, setOverviewQuotes] = useState(initialOverviewQuotes);
+
     useEffect(() => {
         getSearchHistory().then(setHistory);
     }, []);
 
-    // Real-time updates with stable interval
+    // Unified Real-time updates
     useEffect(() => {
         const interval = setInterval(async () => {
-            // Need latest symbols - can use setStocks with functional update to read latest without triggering re-run
-            let currentSymbols: string[] = [];
-            setStocks(prev => {
-                currentSymbols = prev.map(s => s.symbol).filter(Boolean);
-                return prev;
-            });
+            const currentDashSymbols = stocks.map(s => s.symbol).filter(Boolean);
+            const indexSymbols = indices.map(i => (i as any).symbol);
+            const overviewSymbols = OVERVIEW_SYMBOLS; // Imported in the component now? No, I should import it or define it.
 
-            if (currentSymbols.length === 0) return;
+            const allSymbols = Array.from(new Set([...currentDashSymbols, ...indexSymbols, ...OVERVIEW_SYMBOLS]));
 
             try {
-                const updatedQuotes = await getBatchStockQuotes(currentSymbols);
+                const updatedQuotes = await getBatchStockQuotes(allSymbols);
+                
+                // Update Dashboard Stocks
                 setStocks(prevStocks => prevStocks.map(s => {
                     const newQuote = updatedQuotes.find(q => q.symbol === s.symbol);
                     if (newQuote && newQuote.price !== s.quote?.price) {
@@ -55,13 +60,26 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
                     }
                     return s;
                 }));
+
+                // Update Indices
+                setIndices(prevIndices => prevIndices.map(idx => {
+                    const newQuote = updatedQuotes.find(q => q.symbol === (idx as any).symbol);
+                    if (newQuote && newQuote.price !== (idx as any).price) {
+                        return { ...idx, ...newQuote };
+                    }
+                    return idx;
+                }));
+
+                // Update Overview
+                setOverviewQuotes(updatedQuotes); // The component handles filtering
             } catch (error) {
                 console.error("Failed to update quotes", error);
             }
-        }, 2000);
+        }, 5000); // 5s is a good balance for crypto/forex
 
         return () => clearInterval(interval);
-    }, []);
+    }, [stocks, indices]); // Need to watch these to keep symbols fresh
+
 
     const handleSearch = async (symbol: string) => {
         if (!symbol.trim()) return;
@@ -146,10 +164,10 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
                 </div>
             </div>
 
-            <WorldIndices showMacro={false} />
+            <WorldIndices showMacro={false} initialData={indices as any} disablePolling={true} />
 
 
-            <MarketOverviewCards />
+            <MarketOverviewCards initialQuotes={overviewQuotes} disablePolling={true} />
 
             <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Historical Evolution</h2>
@@ -172,3 +190,4 @@ export function StockDashboard({ initialStocks }: StockDashboardProps) {
         </div>
     );
 }
+

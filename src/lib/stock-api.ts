@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import YahooFinance from 'yahoo-finance2';
 import fs from 'fs';
 import path from 'path';
@@ -9,6 +10,7 @@ const streamPipeline = promisify(pipeline);
 const yahooFinance = new YahooFinance({
     logger: { info: () => { }, warn: () => { }, error: () => { }, debug: () => { }, dir: () => { } },
 });
+
 
 export interface StockRecommendation {
     epochGradeDate: string;
@@ -80,7 +82,7 @@ export interface CalendarEvent {
 
 import { getRealTimeQuote, getBatchRealTimeQuotes } from './alpaca';
 
-export async function getStockQuote(symbol: string): Promise<StockData | null> {
+export const getStockQuote = cache(async (symbol: string): Promise<StockData | null> => {
     try {
         const quote = await yahooFinance.quote(symbol);
         if (!quote) {
@@ -119,14 +121,14 @@ export async function getStockQuote(symbol: string): Promise<StockData | null> {
         console.error(`Failed to fetch quote for ${symbol}:`, error);
         return null;
     }
-}
+});
 
-export async function getStockHistory(
+export const getStockHistory = cache(async (
     symbol: string,
     from?: string,
     to?: string,
     interval: '1m' | '5m' | '15m' | '30m' | '60m' | '1h' | '1d' | '1wk' | '1mo' = '1d'
-): Promise<HistoricalDataPoint[]> {
+): Promise<HistoricalDataPoint[]> => {
     try {
         const today = new Date();
         const period1 = from ? from : '2024-01-01'; // Default or provided start
@@ -164,45 +166,77 @@ export async function getStockHistory(
         console.error(`Failed to fetch history for ${symbol}:`, error);
         return [];
     }
-}
+});
 
-export async function getBatchStockQuotes(symbols: string[]): Promise<StockData[]> {
+export const getBatchStockQuotes = cache(async (symbols: string[]): Promise<StockData[]> => {
     if (!symbols || symbols.length === 0) return [];
+
+    // Unique and uppercase symbols for the batch call
+    const uniqueSymbols = Array.from(new Set(symbols.map(s => s.toUpperCase())));
 
     let alpacaResults: any[] = [];
     const hasAlpacaKeys = process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY;
 
     if (hasAlpacaKeys) {
-        // Only try Alpaca for stocks (avoiding indices or cryptos for now unless we scale)
-        const alpacaSymbols = symbols.filter(s => !s.startsWith('^') && !s.includes('=') && !s.includes('-'));
+        const alpacaSymbols = uniqueSymbols.filter(s => !s.startsWith('^') && !s.includes('=') && !s.includes('-'));
         if (alpacaSymbols.length > 0) {
-            alpacaResults = await getBatchRealTimeQuotes(alpacaSymbols);
+            try {
+                alpacaResults = await getBatchRealTimeQuotes(alpacaSymbols);
+            } catch (e) {
+                console.warn("Alpaca batch fetch failed", e);
+            }
         }
     }
 
     const alpacaMap = new Map(alpacaResults.map(r => [r.symbol, r]));
 
-    // Fetch from Yahoo for everything not fulfilled by Alpaca or which needs extra info (like name/marketCap)
-    const promises = symbols.map(async (sym) => {
-        const alpacaData = alpacaMap.get(sym.toUpperCase().split('.')[0]);
-        const yahooData = await getStockQuote(sym);
-        
-        if (!yahooData) return null;
+    try {
+        // Yahoo Finance batch quote
+        const yahooQuotes = await yahooFinance.quote(uniqueSymbols);
+        const quotesArray = Array.isArray(yahooQuotes) ? yahooQuotes : [yahooQuotes];
 
-        if (alpacaData) {
-            return {
-                ...yahooData,
-                price: alpacaData.price,
-                change: alpacaData.change,
-                changePercent: alpacaData.changePercent,
+        const results = await Promise.all(quotesArray.map(async (quote) => {
+            if (!quote) return null;
+            
+            const symbol = quote.symbol;
+            const alpacaData = alpacaMap.get(symbol.toUpperCase().split('.')[0]);
+
+            const data: StockData = {
+                symbol: quote.symbol,
+                price: quote.regularMarketPrice ?? 0,
+                change: quote.regularMarketChange ?? 0,
+                changePercent: quote.regularMarketChangePercent ?? 0,
+                name: symbol === 'BZ=F' ? 'Brent Crude Oil' : (quote.shortName || quote.longName || symbol),
+                marketCap: quote.marketCap,
+                fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
+                fiftyTwoWeekLow: quote.fiftyTwoWeekLow,
+                trailingPE: quote.trailingPE,
+                dividendYield: quote.dividendYield,
+                eps: quote.epsTrailingTwelveMonths,
+                logoUrl: await getStockLogo(symbol), // This still happens in parallel for all
+                currency: quote.currency || 'USD',
             };
-        }
-        return yahooData;
-    });
 
-    const results = await Promise.all(promises);
-    return results.filter((q): q is StockData => q !== null);
-}
+            if (alpacaData) {
+                data.price = alpacaData.price;
+                data.change = alpacaData.change;
+                data.changePercent = alpacaData.changePercent;
+            }
+
+            return data;
+        }));
+
+        return results.filter((q): q is StockData => q !== null);
+    } catch (error) {
+        console.error("Batch fetch from Yahoo failed:", error);
+        // Fallback to individual if batch fails (sometimes helpful if one symbol is broken)
+        const fallbacks = await Promise.all(uniqueSymbols.map(s => getStockQuote(s)));
+        return fallbacks.filter((q): q is StockData => q !== null);
+    }
+});
+
+
+
 
 
 export interface IntradayResult {
@@ -393,7 +427,7 @@ export async function getStockNews(symbol: string): Promise<NewsArticle[]> {
     }
 }
 
-export async function getMarketMovers(type: 'day_gainers' | 'day_losers' = 'day_gainers'): Promise<StockData[]> {
+export const getMarketMovers = cache(async (type: 'day_gainers' | 'day_losers' = 'day_gainers'): Promise<StockData[]> => {
     try {
         const result = await yahooFinance.screener({ scrIds: type, count: 5 });
         return result.quotes.map((quote: any) => ({
@@ -413,7 +447,7 @@ export async function getMarketMovers(type: 'day_gainers' | 'day_losers' = 'day_
         console.error(`Failed to fetch market movers (${type}):`, error);
         return [];
     }
-}
+});
 
 export interface RecommendationData {
     recommendations: StockRecommendation[];

@@ -12,23 +12,7 @@ import { getUSInterestRate, getFredSeries } from "@/actions/fred";
 import { getECBInterestRate } from "@/actions/ecb";
 import { getEurostatSeries, getEurostatBatch } from "@/actions/eurostat";
 
-interface IndexInfo {
-    symbol: string;
-    name: string;
-    region: string;
-    countryCode: string;
-}
-
-const INDICES_CONFIG: IndexInfo[] = [
-    { symbol: "^IBEX", name: "IBEX 35", region: "Spain", countryCode: "es" },
-    { symbol: "^GSPC", name: "S&P 500", region: "USA", countryCode: "us" },
-    { symbol: "^NDX", name: "Nasdaq 100", region: "USA", countryCode: "us" },
-    { symbol: "^STOXX50E", name: "Euro Stoxx 50", region: "Europe", countryCode: "eu" },
-    { symbol: "^GDAXI", name: "DAX", region: "Germany", countryCode: "de" },
-    { symbol: "^FCHI", name: "CAC 40", region: "France", countryCode: "fr" },
-    { symbol: "FTSEMIB.MI", name: "FTSE MIB", region: "Italy", countryCode: "it" },
-    { symbol: "^N225", name: "Nikkei 225", region: "Asia", countryCode: "jp" }
-];
+import { INDICES_CONFIG, IndexInfo } from "@/lib/constants";
 
 const EURO_COUNTRIES = ["AT", "BE", "HR", "CY", "EE", "FI", "FR", "DE", "GR", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PT", "SK", "SI", "ES"];
 
@@ -166,12 +150,31 @@ const StockIndexHeader = memo(({ index, flashClass }: { index: StockData & Index
 });
 StockIndexHeader.displayName = "StockIndexHeader";
 
-export function WorldIndices({ showMacro = true }: { showMacro?: boolean }) {
-    const [indicesData, setIndicesData] = useState<(StockData & IndexInfo)[]>([]);
+export function WorldIndices({ showMacro = true, initialData = [], disablePolling = false }: { showMacro?: boolean, initialData?: (StockData & IndexInfo)[], disablePolling?: boolean }) {
+    const [indicesData, setIndicesData] = useState<(StockData & IndexInfo)[]>(initialData);
     const [interestRates, setInterestRates] = useState<InterestRate[]>([]);
     const [eurostatData, setEurostatData] = useState<Record<string, Record<string, number | null>>>({});
     const [flashStates, setFlashStates] = useState<Record<string, string>>({});
+
     const prevPrices = useRef<Record<string, number>>({});
+
+    // Sync with initialData if parent updates it (unified polling)
+    useEffect(() => {
+        if (initialData && initialData.length > 0) {
+            setIndicesData(initialData);
+            
+            // Handle flashes even when data comes from parent
+            initialData.forEach(index => {
+                const prevPrice = prevPrices.current[index.symbol];
+                if (prevPrice !== undefined && index.price !== prevPrice) {
+                    const isIncrease = index.price > prevPrice;
+                    setFlashStates(prev => ({ ...prev, [index.symbol]: isIncrease ? "bg-green-500/10" : "bg-red-500/10" }));
+                    setTimeout(() => setFlashStates(prev => ({ ...prev, [index.symbol]: "" })), 1000);
+                }
+                prevPrices.current[index.symbol] = index.price;
+            });
+        }
+    }, [initialData]);
 
     const fetchIndices = async () => {
         try {
@@ -219,15 +222,27 @@ export function WorldIndices({ showMacro = true }: { showMacro?: boolean }) {
     };
 
     useEffect(() => {
-        fetchIndices(); 
+        if (!initialData || initialData.length === 0) {
+            fetchIndices(); 
+        }
+        
         fetchRates(); 
         if (showMacro) {
             fetchEurostatBatchMacro();
         }
-        const indexInterval = setInterval(fetchIndices, 10000);
+
+        let indexInterval: NodeJS.Timeout | undefined;
+        if (!disablePolling) {
+            indexInterval = setInterval(fetchIndices, 10000);
+        }
+        
         const ratesInterval = setInterval(fetchRates, 3600000);
-        return () => { clearInterval(indexInterval); clearInterval(ratesInterval); };
-    }, [showMacro]);
+        return () => { 
+            if (indexInterval) clearInterval(indexInterval); 
+            clearInterval(ratesInterval); 
+        };
+    }, [showMacro, disablePolling]);
+
 
     if (indicesData.length === 0 && interestRates.length === 0) return null;
 
