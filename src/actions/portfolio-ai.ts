@@ -25,7 +25,7 @@ export async function getPortfolioSummary(positions: { ticker: string, shares: n
         const quotes = await getBatchStockQuotes(tickers);
 
         const portfolioData = positions.map(p => {
-            const q = quotes.find(quote => quote.symbol === p.ticker);
+            const q = quotes.find(quote => quote?.symbol === p.ticker);
             const currentPrice = q?.price ?? p.currentPrice ?? 0;
             const value = p.shares * currentPrice;
             const cost = p.shares * p.avgPrice;

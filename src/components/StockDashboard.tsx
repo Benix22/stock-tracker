@@ -54,7 +54,7 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
                 
                 // Update Dashboard Stocks
                 setStocks(prevStocks => prevStocks.map(s => {
-                    const newQuote = updatedQuotes.find(q => q.symbol === s.symbol);
+                    const newQuote = updatedQuotes.find(q => q?.symbol === s.symbol);
                     if (newQuote && newQuote.price !== s.quote?.price) {
                         return { ...s, quote: newQuote };
                     }
@@ -63,7 +63,7 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
 
                 // Update Indices
                 setIndices(prevIndices => prevIndices.map(idx => {
-                    const newQuote = updatedQuotes.find(q => q.symbol === (idx as any).symbol);
+                    const newQuote = updatedQuotes.find(q => q?.symbol === (idx as any).symbol);
                     if (newQuote && newQuote.price !== (idx as any).price) {
                         return { ...idx, ...newQuote };
                     }

@@ -21,12 +21,12 @@ export default async function Dashboard() {
   const allQuotes = await getBatchStockQuotes(allSymbols);
   
   // 2. Map quotes back to their respective groups
-  const dashQuotes = dashSymbols.map(sym => allQuotes.find(q => q.symbol === sym) || null);
+  const dashQuotes = dashSymbols.map(sym => allQuotes.find(q => q?.symbol === sym) || null);
   const indexQuotes = INDICES_CONFIG.map(config => {
-      const quote = allQuotes.find(q => q.symbol === config.symbol);
+      const quote = allQuotes.find(q => q?.symbol === config.symbol);
       return { ...config, ...(quote || { price: 0, change: 0, changePercent: 0, symbol: config.symbol, name: config.name }) };
   });
-  const overviewQuotes = OVERVIEW_SYMBOLS.map(sym => allQuotes.find(q => q.symbol === sym) || null);
+  const overviewQuotes = OVERVIEW_SYMBOLS.map(sym => allQuotes.find(q => q?.symbol === sym) || null);
 
   // 3. Parallel fetch of histories for dashboard stocks (still needed for charts)
   const stocksDataWithHistory = await Promise.all(

@@ -181,7 +181,7 @@ export function WorldIndices({ showMacro = true, initialData = [], disablePollin
             const symbols = INDICES_CONFIG.map(i => i.symbol);
             const quotes = await getBatchStockQuotes(symbols);
             const combinedData = INDICES_CONFIG.map(config => {
-                const quote = quotes.find(q => q.symbol === config.symbol);
+                const quote = quotes.find(q => q?.symbol === config.symbol);
                 return { ...config, ...(quote || { price: 0, change: 0, changePercent: 0, symbol: config.symbol, name: config.name }) } as StockData & IndexInfo;
             });
             setIndicesData(combinedData);

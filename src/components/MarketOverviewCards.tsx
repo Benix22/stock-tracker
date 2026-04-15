@@ -37,21 +37,21 @@ export function MarketOverviewCards({ initialQuotes = [], disablePolling = false
         if (!quotes || quotes.length === 0) return;
 
         setCryptoStocks(prev => prev.map(s => {
-            const q = quotes.find(quote => quote.symbol === s.symbol)
+            const q = quotes.find(quote => quote?.symbol === s.symbol)
             return q ? { ...s, price: q.price, change: q.changePercent } : s
         }))
 
         setCommodities(prev => prev.map(s => {
-            const q = quotes.find(quote => quote.symbol === s.symbol)
+            const q = quotes.find(quote => quote?.symbol === s.symbol)
             return q ? { ...s, price: q.price, change: q.changePercent, isPos: q.change >= 0 } : s
         }))
 
         setCurrencies(prev => prev.map(s => {
-            const q = quotes.find(quote => quote.symbol === s.symbol)
+            const q = quotes.find(quote => quote?.symbol === s.symbol)
             return q ? { ...s, price: q.price, change: q.changePercent } : s
         }))
 
-        const eur = quotes.find(q => q.symbol === "EURUSD=X")
+        const eur = quotes.find(q => q?.symbol === "EURUSD=X")
         if (eur) setCurrenciesData({ price: eur.price, change: eur.changePercent })
     }
 
