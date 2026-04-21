@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Brain, TrendingUp, ShieldCheck, Target, Sparkles, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, Brain, TrendingUp, ShieldCheck, Target, Sparkles, RefreshCw, Crown } from "lucide-react";
 import { getBatchStockQuotes } from "@/actions/stock";
 import { useAuth, UserButton } from "@clerk/nextjs";
 import { getPositions, addOrUpdatePosition, deletePosition } from "@/actions/portfolio-db";
 import { getPortfolioSummary } from "@/actions/portfolio-ai";
 import { PortfolioCalendar } from "@/components/PortfolioCalendar";
+import { getUserPlan } from "@/actions/subscription";
+import { toast } from "sonner";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const fmtCurrency = (n, currency = "USD") =>
@@ -164,14 +166,20 @@ export default function PortfolioPage() {
   const [aiSummary, setAiSummary] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
+  const [userPlan, setUserPlan] = useState("FREE");
+
   // Fetch from DB
   const refreshHistory = useCallback(async () => {
     if (!userId) return;
     try {
-      const data = await getPositions();
+      const [data, plan] = await Promise.all([
+        getPositions(),
+        getUserPlan()
+      ]);
       setPositions(data.map(p => ({ ...p, ticker: p.symbol })));
+      setUserPlan(plan);
     } catch (e) {
-      console.error("Failed to load positions", e);
+      console.error("Failed to load portfolio data", e);
     } finally {
       setLoading(false);
     }
@@ -242,6 +250,9 @@ export default function PortfolioPage() {
   };
 
   const generateAISummary = async () => {
+    if (userPlan === "FREE") {
+      return; // Handled by UI overlay
+    }
     if (enriched.length === 0) return;
     setAiLoading(true);
     setAiError(null);
@@ -543,8 +554,26 @@ export default function PortfolioPage() {
 
         {/* Investment Co-pilot Section */}
         {positions.length > 0 && (
-          <div className="mt-16 space-y-8 animate-in fade-in duration-1000">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6 border-white/10">
+          <div className={`mt-16 space-y-8 animate-in fade-in duration-1000 relative overflow-hidden rounded-[2.5rem] p-1 ${userPlan === "FREE" ? "min-h-[300px]" : ""}`}>
+            {userPlan === "FREE" && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-[8px] rounded-[2.5rem] border border-white/5 transition-all px-4">
+                <div className="text-center p-6 md:p-8 bg-[#050505] border border-white/10 rounded-[2.5rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] max-w-sm w-full animate-in zoom-in-95 duration-500 border-t-white/20">
+                  <div className="w-14 h-14 bg-amber-500/10 rounded-[1.2rem] flex items-center justify-center mx-auto mb-4 border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+                    <Crown className="w-7 h-7 text-amber-500" />
+                  </div>
+                  <h3 className="text-xl font-black text-white mb-2 tracking-tighter">Unlock Co-pilot</h3>
+                  <p className="text-[11px] text-zinc-400 mb-6 leading-relaxed font-medium">Get AI-powered strategic analysis and market opportunities tailored to your assets.</p>
+                  <button 
+                    onClick={() => toast.info("Stripe integration coming soon! Use the Navbar badge to toggle for now.")}
+                    className="w-full bg-gradient-to-r from-amber-500 to-amber-600 py-3 rounded-xl font-black text-[9px] text-white uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-amber-500/20"
+                  >
+                    Unlock Premium
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className={`flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6 border-white/10 ${userPlan === "FREE" ? "opacity-30 pointer-events-none" : ""}`}>
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <div className="absolute -inset-1 bg-gradient-to-r from-primary to-blue-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
@@ -555,14 +584,14 @@ export default function PortfolioPage() {
                 <div>
                   <h2 className="text-3xl font-black tracking-tight flex items-center gap-2">
                     Investment Co-pilot
-                    <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full uppercase tracking-widest font-bold">Pro</span>
+                    <span className="text-[10px] bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full uppercase tracking-widest font-bold border border-amber-500/20">Premium</span>
                   </h2>
                   <p className="text-sm text-muted-foreground font-medium">Curated market analysis tailored to your real exposure</p>
                 </div>
               </div>
               <button
                 onClick={generateAISummary}
-                disabled={aiLoading}
+                disabled={aiLoading || userPlan === "FREE"}
                 className="group flex items-center gap-3 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all duration-300 disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${aiLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-700"}`} />

@@ -2,20 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { getAIPrediction, PredictionResult } from "@/actions/ai-prediction";
-import { TrendingUp, TrendingDown, Minus, Sparkles, AlertCircle, BrainCircuit } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Sparkles, AlertCircle, BrainCircuit, Crown } from "lucide-react";
+import { getUserPlan } from "@/actions/subscription";
+import { toast } from "sonner";
 
 export function AIPrediction({ symbol, isIndex }: { symbol: string, isIndex: boolean }) {
     const [prediction, setPrediction] = useState<PredictionResult | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [userPlan, setUserPlan] = useState("FREE");
 
     useEffect(() => {
-        if (isIndex) {
-            setLoading(false);
-            return;
-        }
+        async function init() {
+            const plan = await getUserPlan();
+            setUserPlan(plan);
 
-        async function fetchPrediction() {
+            if (isIndex || plan === "FREE") {
+                setLoading(false);
+                return;
+            }
+
             try {
                 const res = await getAIPrediction(symbol);
                 if (res) {
@@ -30,7 +36,7 @@ export function AIPrediction({ symbol, isIndex }: { symbol: string, isIndex: boo
             }
         }
 
-        fetchPrediction();
+        init();
     }, [symbol, isIndex]);
 
     if (isIndex) return null;
@@ -41,6 +47,43 @@ export function AIPrediction({ symbol, isIndex }: { symbol: string, isIndex: boo
                 <BrainCircuit className="h-8 w-8 text-primary/40 mb-3" />
                 <h3 className="font-medium text-foreground/70 mb-1">Analyzing Market with AI</h3>
                 <p className="text-sm text-muted-foreground text-center max-w-sm">Evaluating the last 30 days of history and fundamental metrics of {symbol}...</p>
+            </div>
+        );
+    }
+
+    if (userPlan === "FREE") {
+        return (
+            <div className="group w-full relative overflow-hidden rounded-[2rem] border border-white/5 p-4 bg-card/50 flex flex-col items-center justify-center min-h-[280px] backdrop-blur-sm my-8 transition-all hover:border-white/10">
+                <div className="absolute inset-0 z-10 bg-background/30 backdrop-blur-[6px] flex items-center justify-center p-4">
+                    <div className="text-center p-6 md:p-8 bg-[#050505] border border-white/10 rounded-[2.5rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] max-w-sm w-full animate-in zoom-in-95 duration-500 border-t-white/20">
+                        <div className="w-14 h-14 bg-amber-500/10 rounded-[1.2rem] flex items-center justify-center mx-auto mb-4 border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+                            <Crown className="w-7 h-7 text-amber-500" />
+                        </div>
+                        <h3 className="text-xl font-black text-white mb-2 tracking-tighter">AI Verdict Locked</h3>
+                        <p className="text-[11px] text-zinc-400 mb-6 leading-relaxed font-medium">Unlock predictive BUY/SELL signals and strategic reasoning for {symbol}.</p>
+                        <button 
+                            onClick={() => toast.info("Stripe integration coming soon! Use the Navbar badge to toggle for now.")}
+                            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 py-3 rounded-xl font-black text-[9px] text-white uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-amber-500/20"
+                        >
+                            Unlock Premium
+                        </button>
+                    </div>
+                </div>
+                
+                {/* Faded Background to entice the user */}
+                <div className="flex w-full gap-8 opacity-[0.04] pointer-events-none select-none blur-[4px] px-8">
+                    <div className="flex items-center gap-6 md:min-w-[220px] shrink-0">
+                        <div className="p-4 rounded-2xl bg-white/20 w-16 h-16" />
+                        <div className="space-y-2">
+                            <div className="w-20 h-3 bg-white/20 rounded-full" />
+                            <div className="w-24 h-6 bg-white/20 rounded-xl" />
+                        </div>
+                    </div>
+                    <div className="flex-1 space-y-3 pt-2">
+                        <div className="w-1/2 h-4 bg-white/20 rounded-full" />
+                        <div className="w-full h-12 bg-white/20 rounded-2xl" />
+                    </div>
+                </div>
             </div>
         );
     }

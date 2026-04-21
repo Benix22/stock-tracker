@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { leagues, leagueParticipants, leaguePositions } from "@/db/schema";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, ne, not } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function getOrCreateCurrentLeague() {
@@ -168,4 +168,115 @@ export async function executeLeagueTrade({ participantId, symbol, shares, price,
 
   revalidatePath("/league");
   revalidatePath(`/stock/${symbol}`);
+}
+
+export async function getPreviousLeagueTopTraders() {
+  const now = new Date();
+  let prevMonth = now.getMonth(); // 0-indexed, so 0 is Jan
+  let prevYear = now.getFullYear();
+
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear -= 1;
+  }
+  
+  const monthStr = prevMonth.toString().padStart(2, "0");
+  const yearStr = prevYear.toString();
+
+  const prevLeague = await db.query.leagues.findFirst({
+    where: and(eq(leagues.month, monthStr), eq(leagues.year, yearStr))
+  });
+
+  if (!prevLeague) return [];
+
+  // Similar logic to getLeagueLeaderboard but for prevLeague
+  const participants = await db.query.leagueParticipants.findMany({
+    where: eq(leagueParticipants.leagueId, prevLeague.id),
+  });
+
+  if (participants.length === 0) return [];
+
+  const positionsWithParticipant = await db.select().from(leaguePositions)
+    .innerJoin(leagueParticipants, eq(leaguePositions.participantId, leagueParticipants.id))
+    .where(eq(leagueParticipants.leagueId, prevLeague.id));
+
+  const allSymbols = [...new Set(positionsWithParticipant.map(p => p.league_positions.symbol))];
+  
+  let quotesMap: Record<string, number> = {};
+  if (allSymbols.length > 0) {
+    const { getBatchStockQuotes } = await import("@/actions/stock");
+    const quotes = await getBatchStockQuotes(allSymbols as string[]);
+    quotes.forEach(q => quotesMap[q.symbol] = q.price);
+  }
+
+  const results = participants.map(p => {
+    const userPositions = positionsWithParticipant.filter(pos => pos.league_participants.id === p.id);
+    const stockValue = userPositions.reduce((acc, pos) => {
+      const price = quotesMap[pos.league_positions.symbol] || pos.league_positions.avgPrice || 0;
+      return acc + (pos.league_positions.shares * price);
+    }, 0);
+    
+    return {
+      ...p,
+      totalValue: p.cashBalance + stockValue,
+      profitPct: ((p.cashBalance + stockValue - 100000) / 100000) * 100
+    };
+  });
+
+  return results.sort((a, b) => b.totalValue - a.totalValue).slice(0, 3);
+}
+
+export async function getLeagueHistory() {
+  const now = new Date();
+  const currentMonth = (now.getMonth() + 1).toString().padStart(2, "0");
+  const currentYear = now.getFullYear().toString();
+
+  const yearLeagues = await db.query.leagues.findMany({
+    where: and(eq(leagues.year, currentYear), ne(leagues.month, currentMonth)),
+    orderBy: desc(leagues.month)
+  });
+
+  if (yearLeagues.length === 0) return [];
+
+  const history = await Promise.all(yearLeagues.map(async (league) => {
+    const participants = await db.query.leagueParticipants.findMany({
+      where: eq(leagueParticipants.leagueId, league.id),
+    });
+
+    if (participants.length === 0) return { league, topTraders: [] };
+
+    const positionsWithParticipant = await db.select().from(leaguePositions)
+      .innerJoin(leagueParticipants, eq(leaguePositions.participantId, leagueParticipants.id))
+      .where(eq(leagueParticipants.leagueId, league.id));
+
+    const allSymbols = [...new Set(positionsWithParticipant.map(p => p.league_positions.symbol))];
+    
+    let quotesMap: Record<string, number> = {};
+    if (allSymbols.length > 0) {
+      const { getBatchStockQuotes } = await import("@/actions/stock");
+      const quotes = await getBatchStockQuotes(allSymbols as string[]);
+      quotes.forEach(q => quotesMap[q.symbol] = q.price);
+    }
+
+    const results = participants.map(p => {
+      const userPositions = positionsWithParticipant.filter(pos => pos.league_participants.id === p.id);
+      const stockValue = userPositions.reduce((acc, pos) => {
+        const price = quotesMap[pos.league_positions.symbol] || pos.league_positions.avgPrice || 0;
+        return acc + (pos.league_positions.shares * price);
+      }, 0);
+      
+      return {
+        ...p,
+        totalValue: p.cashBalance + stockValue,
+        profitPct: ((p.cashBalance + stockValue - 100000) / 100000) * 100
+      };
+    });
+
+    return {
+      league,
+      topTraders: results.sort((a, b) => b.totalValue - a.totalValue).slice(0, 3)
+    };
+  }));
+
+  return history;
 }

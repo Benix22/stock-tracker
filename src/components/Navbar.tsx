@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
 import { LayoutDashboard, Briefcase, Grid3X3, LineChart, Menu, X, ChevronRight, Trophy, CalendarDays, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PlanBadge } from "@/components/PlanBadge";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -70,6 +71,7 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          {isSignedIn && <PlanBadge />}
           {isLoaded ? (
             isSignedIn ? (
               <UserButton appearance={{ elements: { userButtonAvatarBox: "w-8 h-8 md:w-9 md:h-9" } }} />

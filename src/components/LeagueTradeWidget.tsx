@@ -17,6 +17,7 @@ import { formatLeagueNumber } from "@/lib/utils";
 
 export function LeagueTradeWidget({ symbol, currentPrice }: { symbol: string, currentPrice: number }) {
     const [participant, setParticipant] = useState<any>(null);
+    const [ownedShares, setOwnedShares] = useState(0);
     const [shares, setShares] = useState("1");
     const [loading, setLoading] = useState(true);
     const [executing, setExecuting] = useState(false);
@@ -24,13 +25,21 @@ export function LeagueTradeWidget({ symbol, currentPrice }: { symbol: string, cu
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
-        const fetchParticipant = async () => {
+        const fetchParticipantData = async () => {
             const p = await getLeagueParticipant();
             setParticipant(p);
+            
+            if (p) {
+                const { getLeaguePositions } = await import("@/actions/league-db");
+                const positions = await getLeaguePositions(p.id);
+                const pos = positions.find(pos => pos.symbol === symbol.toUpperCase());
+                setOwnedShares(pos?.shares || 0);
+            }
+            
             setLoading(false);
         };
-        fetchParticipant();
-    }, []);
+        fetchParticipantData();
+    }, [symbol, open]);
 
     const handleTrade = async (type: 'BUY' | 'SELL') => {
         if (!participant) return;
@@ -71,17 +80,20 @@ export function LeagueTradeWidget({ symbol, currentPrice }: { symbol: string, cu
                     <DialogHeader>
                         <div className="flex items-center gap-2 mb-2">
                              <Trophy className="w-5 h-5 text-amber-500" />
-                             <span className="text-[10px] uppercase font-black tracking-widest text-amber-500/80">March Season Trade</span>
+                             <span className="text-[10px] uppercase font-black tracking-widest text-amber-500/80">{new Date().toLocaleString('en-US', { month: 'long' })} Season Trade</span>
                         </div>
-                        <DialogTitle className="text-2xl font-black tracking-tight">{symbol}</DialogTitle>
+                        <DialogTitle className="text-2xl font-black tracking-tight text-white">{symbol}</DialogTitle>
                     </DialogHeader>
                     
                     <div className="flex items-center justify-between mt-6 bg-white/5 rounded-2xl p-4 border border-white/5">
                         <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-muted-foreground uppercase">League Cash</span>
-                            <span className="text-lg font-black tabular-nums">{formatLeagueNumber(participant.cashBalance, 2, "$")}</span>
+                            <span className="text-lg font-black tabular-nums text-amber-500">{formatLeagueNumber(participant.cashBalance, 2, "$")}</span>
                         </div>
-                        <Wallet className="w-6 h-6 text-muted-foreground/30" />
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase">Owned</span>
+                            <span className="text-lg font-black tabular-nums text-amber-500">{ownedShares} <span className="text-[10px] text-muted-foreground">Shares</span></span>
+                        </div>
                     </div>
                 </div>
 
@@ -99,9 +111,15 @@ export function LeagueTradeWidget({ symbol, currentPrice }: { symbol: string, cu
                             />
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground uppercase opacity-40">Qty</div>
                         </div>
-                        <div className="flex items-center justify-between px-1">
-                            <span className="text-xs text-muted-foreground font-medium">Estimated cost</span>
-                            <span className="text-sm font-black tabular-nums text-white">{formatLeagueNumber(totalCost, 2, "$")}</span>
+                        <div className="flex items-center justify-between px-3 py-3 bg-white/[0.03] rounded-2xl border border-white/5">
+                            <div className="flex flex-col">
+                                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Est. Cost / Credit</span>
+                                <span className="text-lg font-black tabular-nums text-white">{formatLeagueNumber(totalCost, 2, "$")}</span>
+                            </div>
+                            <div className="text-right flex flex-col items-end">
+                                <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-tighter">Per Share</span>
+                                <span className="text-xs font-bold text-zinc-300">{formatLeagueNumber(currentPrice, 2, "$")}</span>
+                            </div>
                         </div>
                     </div>
 

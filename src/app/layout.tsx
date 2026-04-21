@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 import { ClerkProvider } from "@clerk/nextjs";
 import { Navbar } from "@/components/Navbar";
 import { EconomicNewsCarousel } from "@/components/EconomicNewsCarousel";
+import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,
@@ -35,6 +36,7 @@ export default function RootLayout({
           <Navbar />
           <EconomicNewsCarousel />
           {children}
+          <Toaster position="bottom-right" theme="dark" richColors />
         </body>
       </html>
     </ClerkProvider>

@@ -2,14 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar as CalendarIcon, Loader2, TrendingUp, Bell } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2, TrendingUp, Bell, Mail, Crown } from "lucide-react";
 import { fetchBatchStockCalendar } from "@/actions/stock";
 import { CalendarEvent } from "@/lib/stock-api";
 import { format } from "date-fns";
+import { getUserPlan } from "@/actions/subscription";
+import { sendRoadmapAlert } from "@/actions/email";
+import { toast } from "sonner";
 
 export function PortfolioCalendar({ symbols }: { symbols: string[] }) {
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [loading, setLoading] = useState(true);
+    const [userPlan, setUserPlan] = useState<"FREE" | "PREMIUM">("FREE");
+    const [sendingEmail, setSendingEmail] = useState(false);
 
     useEffect(() => {
         if (!symbols || symbols.length === 0) {

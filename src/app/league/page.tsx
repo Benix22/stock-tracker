@@ -1,11 +1,14 @@
 import { auth } from "@clerk/nextjs/server";
-import { getLeagueParticipant, getLeagueLeaderboard, joinLeague } from "@/actions/league-db";
+import { getLeagueParticipant, getLeagueLeaderboard, joinLeague, getPreviousLeagueTopTraders, getLeagueHistory } from "@/actions/league-db";
 import { redirect } from "next/navigation";
 import { Trophy, Users, Timer, Target, TrendingUp, Sparkles, LayoutDashboard } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LeagueLeaderboard } from "@/components/LeagueLeaderboard";
 import { ClientLeagueAction } from "@/components/ClientLeagueAction";
+import { LeaguePositionsList } from "@/components/LeaguePositionsList";
+import { LeaguePodium } from "@/components/LeaguePodium";
+import { LeagueHistoryList } from "@/components/LeagueHistoryList";
 import { formatLeagueNumber } from "@/lib/utils";
 
 export default async function LeaguePage() {
@@ -14,6 +17,8 @@ export default async function LeaguePage() {
 
     const participant = await getLeagueParticipant();
     const rawLeaderboard = await getLeagueLeaderboard();
+    const prevTopTraders = await getPreviousLeagueTopTraders();
+    const leagueHistory = await getLeagueHistory();
 
     // Calculate user rank
     const userRank = participant ? rawLeaderboard.findIndex(p => p.id === participant.id) + 1 : null;
@@ -77,6 +82,18 @@ export default async function LeaguePage() {
                     </div>
                 </div>
 
+                {leagueHistory.length > 0 && (
+                    <div className="animate-in fade-in slide-in-from-top-4 duration-1000">
+                        <LeagueHistoryList history={leagueHistory} />
+                    </div>
+                )}
+
+                {prevTopTraders.length > 0 && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                        <LeaguePodium participants={prevTopTraders} />
+                    </div>
+                )}
+
                 {!participant ? (
                     <div className="flex flex-col items-center justify-center py-20 animate-in slide-in-from-bottom-8 duration-1000">
                         <div className="text-center space-y-6 max-w-md">
@@ -99,10 +116,18 @@ export default async function LeaguePage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
-                                    <div>
-                                        <div className="text-xs font-bold text-zinc-400 uppercase mb-1">Total Equity</div>
-                                        <div className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40">
-                                            {formatLeagueNumber(userTotalValue, 2, "$")}
+                                    <div className="flex flex-col gap-4">
+                                        <div>
+                                            <div className="text-xs font-bold text-zinc-400 uppercase mb-1">Total Equity</div>
+                                            <div className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40">
+                                                {formatLeagueNumber(userTotalValue, 2, "$")}
+                                            </div>
+                                        </div>
+                                        <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/5 w-fit">
+                                            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Cash Available</div>
+                                            <div className="text-lg font-black text-emerald-400 tabular-nums">
+                                                {formatLeagueNumber(participant.cashBalance, 2, "$")}
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
@@ -125,34 +150,11 @@ export default async function LeaguePage() {
                                     {/* Mini Positions View */}
                                     <div className="space-y-3 pt-4 border-t border-white/5">
                                         <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Open Positions</div>
-                                        {userPositions.length === 0 ? (
-                                            <div className="text-xs text-zinc-500 italic pl-1">No stocks held yet.</div>
-                                        ) : (
-                                            <div className="space-y-2">
-                                                {userPositions.map(pos => {
-                                                    const price = quotesMap[pos.symbol] || pos.avgPrice;
-                                                    const value = pos.shares * price;
-                                                    const plPct = ((price - pos.avgPrice) / pos.avgPrice) * 100;
-                                                    return (
-                                                        <div key={pos.id} className="flex items-center justify-between bg-white/[0.015] p-3 rounded-xl border border-white/5">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 rounded-lg bg-white/[0.03] flex items-center justify-center text-[10px] font-bold text-zinc-200">{pos.symbol.slice(0, 2)}</div>
-                                                                <div>
-                                                                    <div className="text-xs font-bold text-white">{pos.symbol}</div>
-                                                                    <div className="text-[10px] text-zinc-400">{pos.shares} shares</div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <div className="text-xs font-bold text-zinc-200">{formatLeagueNumber(value, 2, "$")}</div>
-                                                                <div className={`text-[9px] font-bold ${plPct >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                                                                    {plPct >= 0 ? "+" : ""}{formatLeagueNumber(plPct, 2)}%
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
+                                        <LeaguePositionsList 
+                                            positions={JSON.parse(JSON.stringify(userPositions))} 
+                                            quotesMap={quotesMap} 
+                                            participantId={participant.id} 
+                                        />
                                     </div>
                                 </CardContent>
                             </Card>
@@ -161,15 +163,15 @@ export default async function LeaguePage() {
                                 <h3 className="text-lg font-black tracking-tight mb-2 text-white">League Rules</h3>
                                 <ul className="text-sm space-y-3 text-zinc-300 font-medium">
                                     <li className="flex items-start gap-2">
-                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] text-primary shrink-0">1</div>
+                                        <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white shrink-0">1</div>
                                         Reset occurs on the 1st of every month.
                                     </li>
                                     <li className="flex items-start gap-2">
-                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] text-primary shrink-0">2</div>
+                                        <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white shrink-0">2</div>
                                         Starting balance is $100,000 for everyone.
                                     </li>
                                     <li className="flex items-start gap-2">
-                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] text-primary shrink-0">3</div>
+                                        <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white shrink-0">3</div>
                                         Real-time prices from Alpaca for all trades.
                                     </li>
                                 </ul>

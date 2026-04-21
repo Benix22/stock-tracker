@@ -7,8 +7,10 @@ import { getCommunitySummary } from "@/actions/comments-ai";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare, ThumbsUp, ThumbsDown, Trash2, Loader2, User, Send, ShieldCheck, Sparkles } from "lucide-react";
+import { MessageSquare, ThumbsUp, ThumbsDown, Trash2, Loader2, User, Send, ShieldCheck, Sparkles, Crown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { getUserPlan } from "@/actions/subscription";
+import { toast } from "sonner";
 
 interface Comment {
     id: string;
@@ -30,15 +32,22 @@ export function StockComments({ symbol }: { symbol: string }) {
     const [content, setContent] = useState("");
     const [sentiment, setSentiment] = useState<"BULLISH" | "BEARISH" | "NEUTRAL">("NEUTRAL");
     const [submitting, setSubmitting] = useState(false);
+    const [userPlan, setUserPlan] = useState<"FREE" | "PREMIUM">("FREE");
+    const [planLoading, setPlanLoading] = useState(true);
 
     const fetchComments = useCallback(async () => {
         try {
-            const data = await getCommentsBySymbol(symbol);
+            const [data, plan] = await Promise.all([
+                getCommentsBySymbol(symbol),
+                getUserPlan()
+            ]);
             setComments(data as any);
+            setUserPlan(plan);
         } catch (error) {
-            console.error("Failed to fetch comments", error);
+            console.error("Failed to fetch comments and plan", error);
         } finally {
             setLoading(false);
+            setPlanLoading(false);
         }
     }, [symbol]);
 
@@ -47,12 +56,12 @@ export function StockComments({ symbol }: { symbol: string }) {
     }, [fetchComments]);
 
     useEffect(() => {
-        if (comments.length >= 2) {
+        if (comments.length >= 2 && userPlan === "PREMIUM") {
             getCommunitySummary(symbol).then(setAiSummary);
         } else {
             setAiSummary(null);
         }
-    }, [symbol, comments.length]);
+    }, [symbol, comments.length, userPlan]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -125,17 +134,49 @@ export function StockComments({ symbol }: { symbol: string }) {
                 )}
             </CardHeader>
             <CardContent className="space-y-6">
-                {/* AI Summary */}
-                {aiSummary && (
-                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex gap-3 text-sm leading-relaxed backdrop-blur-sm shadow-inner group transition-all duration-500 hover:bg-primary/10">
-                        <div className="shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                {/* Community Pulse (AI Summary) */}
+                {comments.length >= 2 && (
+                    userPlan === "PREMIUM" ? (
+                        aiSummary && (
+                            <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex gap-3 text-sm leading-relaxed backdrop-blur-sm shadow-inner group transition-all duration-500 hover:bg-primary/10">
+                                <div className="shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                    <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                </div>
+                                <p className="text-foreground/80 italic font-medium">
+                                    <span className="font-bold text-primary not-italic">Community Pulse: </span>
+                                    {aiSummary}
+                                </p>
+                            </div>
+                        )
+                    ) : (
+                        <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 flex items-center justify-between gap-4 backdrop-blur-sm group transition-all duration-500 overflow-hidden relative min-h-[72px]">
+                            <div className="flex gap-3 items-center relative z-10">
+                                <div className="shrink-0 w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                                    <Crown className="w-4 h-4 text-amber-500" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-tighter">Community Pulse</span>
+                                        <span className="text-[8px] bg-amber-500/20 text-amber-500 px-1 py-0.5 rounded uppercase font-bold">Premium</span>
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground font-medium">Unlock AI-powered summary of the community sentiment.</p>
+                                </div>
+                            </div>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="relative z-10 h-8 text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-lg px-4 border border-amber-500/10"
+                                onClick={() => toast.info("Stripe integration coming soon! Use the Navbar badge to toggle for now.")}
+                            >
+                                Upgrade
+                            </Button>
+                            {/* Faded background text simulation to entice the user */}
+                            <div className="absolute left-[30%] right-[20%] top-0 bottom-0 opacity-[0.03] select-none pointer-events-none blur-[2px] flex items-center gap-2">
+                                <div className="w-full h-3 bg-white/20 rounded-full" />
+                                <div className="w-1/2 h-3 bg-white/20 rounded-full" />
+                            </div>
                         </div>
-                        <p className="text-foreground/80 italic font-medium">
-                            <span className="font-bold text-primary not-italic">Community Pulse: </span>
-                            {aiSummary}
-                        </p>
-                    </div>
+                    )
                 )}
 
                 {/* Post Form */}
