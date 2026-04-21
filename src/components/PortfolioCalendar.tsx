@@ -6,7 +6,7 @@ import { Calendar as CalendarIcon, Loader2, TrendingUp, Bell, Mail, Crown } from
 import { fetchBatchStockCalendar } from "@/actions/stock";
 import { CalendarEvent } from "@/lib/stock-api";
 import { format } from "date-fns";
-import { getUserPlan } from "@/actions/subscription";
+import { getUserPlan, getRoadmapAlertsPreference, updateRoadmapAlertsPreference } from "@/actions/subscription";
 import { sendRoadmapAlert } from "@/actions/email";
 import { toast } from "sonner";
 
@@ -15,14 +15,23 @@ export function PortfolioCalendar({ symbols }: { symbols: string[] }) {
     const [loading, setLoading] = useState(true);
     const [userPlan, setUserPlan] = useState<"FREE" | "PREMIUM">("FREE");
     const [sendingEmail, setSendingEmail] = useState(false);
+    const [alertsEnabled, setAlertsEnabled] = useState(false);
+    const [togglingAlerts, setTogglingAlerts] = useState(false);
 
     useEffect(() => {
-        if (!symbols || symbols.length === 0) {
-            setLoading(false);
-            return;
-        }
+        const init = async () => {
+            const [plan, alerts] = await Promise.all([
+                getUserPlan(),
+                getRoadmapAlertsPreference()
+            ]);
+            setUserPlan(plan);
+            setAlertsEnabled(alerts);
 
-        const load = async () => {
+            if (!symbols || symbols.length === 0) {
+                setLoading(false);
+                return;
+            }
+
             setLoading(true);
             try {
                 const data = await fetchBatchStockCalendar(symbols);
@@ -34,8 +43,58 @@ export function PortfolioCalendar({ symbols }: { symbols: string[] }) {
             }
         };
 
-        load();
+        init();
     }, [symbols.join(',')]);
+
+    const handleToggleAlerts = async () => {
+        if (userPlan === "FREE") {
+            toast.error("Premium Feature", {
+                description: "Daily roadmap alerts are only available for Premium users."
+            });
+            return;
+        }
+
+        const newState = !alertsEnabled;
+        setTogglingAlerts(true);
+        try {
+            await updateRoadmapAlertsPreference(newState);
+            setAlertsEnabled(newState);
+            toast.success(newState ? "Daily Alerts Activated" : "Alerts Deactivated", {
+                description: newState 
+                    ? "You will receive an email if an event occurs tomorrow for any of your stocks."
+                    : "Automatic roadmap emails have been disabled."
+            });
+        } catch (e: any) {
+            toast.error("Preference update failed");
+        } finally {
+            setTogglingAlerts(false);
+        }
+    };
+
+    const handleSendAlert = async () => {
+        if (userPlan === "FREE") {
+            toast.error("Premium Plan required for email alerts", {
+                description: "Upgrade to unlock automatic portfolio roadmap reminders.",
+                action: {
+                    label: "Upgrade",
+                    onClick: () => toast.info("Stripe integration coming soon!")
+                }
+            });
+            return;
+        }
+
+        setSendingEmail(true);
+        try {
+            const result = await sendRoadmapAlert(symbols);
+            toast.success("Strategic Alert", {
+                description: result.message
+            });
+        } catch (e: any) {
+            toast.error(e.message || "Failed to send alert");
+        } finally {
+            setSendingEmail(false);
+        }
+    };
 
     if (loading && symbols.length > 0) {
         return (
@@ -65,9 +124,29 @@ export function PortfolioCalendar({ symbols }: { symbols: string[] }) {
                         </CardTitle>
                         <p className="text-sm text-muted-foreground mt-1 font-medium italic">Unified event timeline for your entire portfolio</p>
                     </div>
-                    <div className="hidden sm:flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
-                        <Bell className="w-3.5 h-3.5" />
-                        {events.length} Upcoming Events
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Daily Alerts Toggle */}
+                        <div className="flex items-center gap-2 p-1.5 bg-zinc-100 rounded-xl border border-white/10 shadow-sm">
+                            <span className="text-[9px] font-black uppercase tracking-widest px-2 text-black">Daily Alarms</span>
+                            <button
+                                onClick={handleToggleAlerts}
+                                disabled={togglingAlerts}
+                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                                    alertsEnabled ? "bg-emerald-500" : "bg-zinc-300"
+                                } ${userPlan === "FREE" ? "opacity-50 grayscale" : ""}`}
+                            >
+                                <span
+                                    className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-lg transition duration-200 ease-in-out ${
+                                        alertsEnabled ? "translate-x-4.5" : "translate-x-0.5"
+                                    }`}
+                                />
+                            </button>
+                        </div>
+
+                        <div className="hidden md:flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">
+                            <Bell className="w-3.5 h-3.5" />
+                            {events.length} Upcoming Events
+                        </div>
                     </div>
                 </div>
             </CardHeader>

@@ -42,3 +42,32 @@ export async function updateUserPlan(plan: Plan) {
   
   return { success: true, plan };
 }
+
+export async function getRoadmapAlertsPreference(): Promise<boolean> {
+  const { userId } = await auth();
+  if (!userId) return false;
+
+  const client = await clerkClient();
+  const user = await client.users.getUser(userId);
+  
+  return (user.publicMetadata.roadmapAlertsEnabled as boolean) || false;
+}
+
+export async function updateRoadmapAlertsPreference(enabled: boolean) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Not authenticated");
+
+  const plan = await getUserPlan();
+  if (plan !== "PREMIUM" && enabled) {
+    throw new Error("PREMIUM_REQUIRED");
+  }
+
+  const client = await clerkClient();
+  await client.users.updateUser(userId, {
+    publicMetadata: {
+      roadmapAlertsEnabled: enabled
+    }
+  });
+  
+  return { success: true, enabled };
+}

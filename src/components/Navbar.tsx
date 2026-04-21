@@ -33,7 +33,6 @@ export function Navbar() {
     { label: "My Portfolio", href: "/portfolio", icon: <Briefcase className="w-4 h-4" /> },
     { label: "Traders League", href: "/league", icon: <Trophy className="w-4 h-4" /> },
     { label: "Heatmap", href: "/heatmap", icon: <Grid3X3 className="w-4 h-4" /> },
-    { label: "Advanced Chart", href: "/advanced", icon: <LineChart className="w-4 h-4" /> },
   ];
 
   return (
