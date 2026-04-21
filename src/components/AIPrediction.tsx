@@ -62,10 +62,10 @@ export function AIPrediction({ symbol, isIndex }: { symbol: string, isIndex: boo
                         <h3 className="text-xl font-black text-white mb-2 tracking-tighter">AI Verdict Locked</h3>
                         <p className="text-[11px] text-zinc-400 mb-6 leading-relaxed font-medium">Unlock predictive BUY/SELL signals and strategic reasoning for {symbol}.</p>
                         <button 
-                            onClick={() => toast.info("Stripe integration coming soon! Use the Navbar badge to toggle for now.")}
-                            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 py-3 rounded-xl font-black text-[9px] text-white uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-amber-500/20"
+                            onClick={() => window.location.href = "/pricing"}
+                            className="bg-amber-500 hover:bg-amber-600 text-black px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-lg shadow-amber-500/20"
                         >
-                            Unlock Premium
+                            Upgrade
                         </button>
                     </div>
                 </div>

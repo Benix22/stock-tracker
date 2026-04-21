@@ -8,13 +8,20 @@ export type Plan = "FREE" | "PREMIUM";
  * Gets the current plan for the authenticated user from Clerk metadata.
  */
 export async function getUserPlan(): Promise<Plan> {
-  const { userId } = await auth();
+  const { userId, has } = await auth();
   if (!userId) return "FREE";
 
+  // Priority 1: Official Clerk Billing (if integrated)
+  // Check if the user has a plan named 'premium' or 'pro'
+  // We check for several common names or you can verify the exact name in Clerk Dashboard
+  const hasOfficialPremium = has({ plan: "premium" }) || has({ plan: "pro" });
+  
+  if (hasOfficialPremium) return "PREMIUM";
+
+  // Priority 2: Manual Metadata (Legacy/Development)
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
   
-  // Use publicMetadata to store the plan
   return (user.publicMetadata.plan as Plan) || "FREE";
 }
 

@@ -563,12 +563,12 @@ export default function PortfolioPage() {
                   </div>
                   <h3 className="text-xl font-black text-white mb-2 tracking-tighter">Unlock Co-pilot</h3>
                   <p className="text-[11px] text-zinc-400 mb-6 leading-relaxed font-medium">Get AI-powered strategic analysis and market opportunities tailored to your assets.</p>
-                  <button 
-                    onClick={() => toast.info("Stripe integration coming soon! Use the Navbar badge to toggle for now.")}
-                    className="w-full bg-gradient-to-r from-amber-500 to-amber-600 py-3 rounded-xl font-black text-[9px] text-white uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-amber-500/20"
-                  >
-                    Unlock Premium
-                  </button>
+                      <button 
+                        onClick={() => window.location.href = "/pricing"}
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-black font-black py-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-amber-500/20"
+                      >
+                        Upgrade to Premium
+                      </button>
                 </div>
               </div>
             )}

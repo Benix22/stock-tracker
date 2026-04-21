@@ -49,7 +49,11 @@ export function PortfolioCalendar({ symbols }: { symbols: string[] }) {
     const handleToggleAlerts = async () => {
         if (userPlan === "FREE") {
             toast.error("Premium Feature", {
-                description: "Daily roadmap alerts are only available for Premium users."
+                description: "Daily roadmap alerts are only available for Premium users.",
+                action: {
+                    label: "Upgrade",
+                    onClick: () => window.location.href = "/pricing"
+                }
             });
             return;
         }
