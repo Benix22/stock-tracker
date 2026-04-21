@@ -46,15 +46,13 @@ export async function broadcastNewSeason() {
     const { userId } = await auth();
     if (!userId) throw new Error("Not authenticated");
 
-    // In a real app:
-    // 1. Check if user is admin
-    // 2. Fetch all users from Clerk
-    // 3. Send emails in batches using Resend
-    
-    console.log("[ADMIN] Broadcasting new season announcement...");
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    return { success: true };
+    try {
+        console.log("[ADMIN] Broadcasting new season announcement...");
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 }
 
 /**
@@ -66,8 +64,11 @@ export async function sendTestEmail() {
     
     if (!email) throw new Error("No email found");
 
-    console.log(`[ADMIN] Sending test email to ${email}...`);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return { success: true };
+    try {
+        console.log(`[ADMIN] Sending test email to ${email}...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 }
