@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(curl -s \"https://api.stlouisfed.org/fred/series?series_id=NAEXKP01JPQ189S&api_key=test&file_type=json\")"
+    ]
+  }
+}

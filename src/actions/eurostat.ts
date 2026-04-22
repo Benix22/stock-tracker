@@ -62,7 +62,9 @@ export async function getEurostatBatch(dataset: string, params: Record<string, s
         
         finalUrl.searchParams.append('format', 'JSON');
         finalUrl.searchParams.append('lang', 'EN');
-        finalUrl.searchParams.append('lastTimePeriod', '1');
+        if (!finalUrl.searchParams.has('lastTimePeriod')) {
+            finalUrl.searchParams.append('lastTimePeriod', '4');
+        }
 
         const response = await fetch(finalUrl.toString(), { 
             next: { revalidate: 3600 * 24 }

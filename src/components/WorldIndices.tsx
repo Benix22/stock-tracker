@@ -10,11 +10,15 @@ import Link from "next/link";
 import { InterestRate } from "@/actions/trading-economics";
 import { getUSInterestRate, getFredSeries } from "@/actions/fred";
 import { getECBInterestRate } from "@/actions/ecb";
-import { getEurostatSeries, getEurostatBatch } from "@/actions/eurostat";
+import { getEurostatSeries, getEurostatBatch } from "@/actions/eurostat"
+import { getIMFMacro } from "@/actions/imf";
 
 import { INDICES_CONFIG, IndexInfo } from "@/lib/constants";
 
-const EURO_COUNTRIES = ["AT", "BE", "HR", "CY", "EE", "FI", "FR", "DE", "GR", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PT", "SK", "SI", "ES"];
+const EURO_COUNTRIES = ["AT", "BE", "HR", "CY", "EE", "FI", "FR", "DE", "GR", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PT", "SK", "SI", "ES", "EA"];
+
+// Euro Stoxx 50 uses countryCode "eu" but Eurostat's Euro Area aggregate code is "EA"
+const EUROSTAT_KEY_MAP: Record<string, string> = { "EU": "EA" };
 
 interface MacroDef { 
     source: 'FRED' | 'EUROSTAT';
@@ -26,12 +30,19 @@ interface MacroDef {
 }
 
 const INDICATOR_SERIES: Record<string, Record<string, MacroDef>> = {
-    "us": { 
+    "us": {
         "pib": { source: 'FRED', id: "A191RL1Q225SBEA", isPercent: true },
         "ipc": { source: 'FRED', id: "CPIAUCSL", units: "pc1", isPercent: true },
-        "paro": { source: 'FRED', id: "UNRATE", isPercent: true }, 
-        "balanza": { source: 'FRED', id: "BOPGSTB", isCurrency: true }, 
-        "pmi": { source: 'FRED', id: "PRMNTO01USM657S" } 
+        "paro": { source: 'FRED', id: "UNRATE", isPercent: true },
+        "balanza": { source: 'FRED', id: "BOPGSTB", isCurrency: true },
+        "pmi": { source: 'FRED', id: "PRMNTO01USM657S" }
+    },
+    "jp": {
+        "pib": { source: 'FRED', id: "NAEXKP01JPQ189S", isPercent: true },
+        "ipc": { source: 'FRED', id: "CPALTT01JPM659N", isPercent: true },
+        "paro": { source: 'FRED', id: "LRUNTTTTJPM156S", isPercent: true },
+        "balanza": { source: 'FRED', id: "XTIMVA01JPM667S", isCurrency: true },
+        "pmi": { source: 'FRED', id: "PRMNTO01JPM657S" }
     }
 };
 
@@ -44,25 +55,27 @@ const MacroIndicators = memo(({ countryCode, eurostatData }: { countryCode: stri
     useEffect(() => {
         const fetchMacro = async () => {
             const countryKey = countryCode.toUpperCase();
-            
-            // If it's a Euro country and we have batch data, use it
-            if (eurostatData && EURO_COUNTRIES.includes(countryKey)) {
+            // Map e.g. "EU" (Euro Stoxx) → "EA" (Eurostat Euro Area aggregate)
+            const eurostatKey = EUROSTAT_KEY_MAP[countryKey] ?? countryKey;
+
+            // If it's a Euro country/area and we have batch data, use it
+            if (eurostatData && EURO_COUNTRIES.includes(eurostatKey)) {
                 const results: Record<string, any> = {
-                    "pib": { val: eurostatData.pib?.[countryKey] ?? null, source: 'EUROSTAT', isPercent: true },
-                    "ipc": { val: eurostatData.ipc?.[countryKey] ?? null, source: 'EUROSTAT', isPercent: true },
-                    "paro": { val: eurostatData.paro?.[countryKey] ?? null, source: 'EUROSTAT', isPercent: true },
-                    "balanza": { val: eurostatData.balanza?.[countryKey] ?? null, source: 'EUROSTAT', isCurrency: true },
-                    "pmi": { val: eurostatData.pmi?.[countryKey] ?? null, source: 'EUROSTAT' }
+                    "pib": { val: eurostatData.pib?.[eurostatKey] ?? null, source: 'EUROSTAT', isPercent: true },
+                    "ipc": { val: eurostatData.ipc?.[eurostatKey] ?? null, source: 'EUROSTAT', isPercent: true },
+                    "paro": { val: eurostatData.paro?.[eurostatKey] ?? null, source: 'EUROSTAT', isPercent: true },
+                    "balanza": { val: eurostatData.balanza?.[eurostatKey] ?? null, source: 'EUROSTAT', isCurrency: true },
+                    "pmi": { val: eurostatData.pmi?.[eurostatKey] ?? null, source: 'EUROSTAT' }
                 };
                 setIndicators(results);
                 setLoading(false);
                 return;
             }
 
-            // Fallback for US or other non-batch countries
-            const seriesMap = INDICATOR_SERIES[countryCode] || INDICATOR_SERIES["us"]; 
+            // For non-Euro countries, use country-specific FRED series if available
+            const seriesMap = INDICATOR_SERIES[countryCode] ?? INDICATOR_SERIES["us"];
             try {
-                const results = await Promise.all(Object.entries(seriesMap).map(async ([key, config]) => {
+                const fredResults = await Promise.all(Object.entries(seriesMap).map(async ([key, config]) => {
                     let val = null;
                     if (config.source === 'FRED') {
                         const data = await getFredSeries(config.id, config.units);
@@ -70,9 +83,30 @@ const MacroIndicators = memo(({ countryCode, eurostatData }: { countryCode: stri
                     }
                     return { key, val, isCurrency: config.isCurrency, isPercent: config.isPercent };
                 }));
-                const newIndicators: Record<string, any> = {};
-                results.forEach(res => newIndicators[res.key] = { val: res.val, isCurrency: res.isCurrency, isPercent: res.isPercent });
-                setIndicators(newIndicators);
+
+                const hasFredData = fredResults.some(r => r.val !== null);
+
+                if (hasFredData) {
+                    const newIndicators: Record<string, any> = {};
+                    fredResults.forEach(res => newIndicators[res.key] = { val: res.val, isCurrency: res.isCurrency, isPercent: res.isPercent });
+                    setIndicators(newIndicators);
+                } else {
+                    // FRED key missing or unavailable — fall back to IMF DataMapper (no API key required)
+                    const imf = await getIMFMacro(countryCode);
+                    if (imf) {
+                        setIndicators({
+                            "pib":     { val: imf.pib,     isPercent: true },
+                            "ipc":     { val: imf.ipc,     isPercent: true },
+                            "paro":    { val: imf.paro,    isPercent: true },
+                            "balanza": { val: imf.balanza, isPercent: true }, // % of GDP
+                            "pmi":     { val: null }
+                        });
+                    } else {
+                        const newIndicators: Record<string, any> = {};
+                        fredResults.forEach(res => newIndicators[res.key] = { val: null, isPercent: res.isPercent });
+                        setIndicators(newIndicators);
+                    }
+                }
             } catch (e) { console.error("Macro fetch error", e); }
             finally { setLoading(false); }
         };
