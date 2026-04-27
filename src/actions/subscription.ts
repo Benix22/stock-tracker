@@ -12,9 +12,20 @@ export async function getUserPlan(): Promise<Plan> {
   if (!userId) return "FREE";
 
   // Priority 1: Official Clerk Billing (if integrated)
-  // Check if the user has a plan named 'premium' or 'pro'
-  // We check for several common names or you can verify the exact name in Clerk Dashboard
-  const hasOfficialPremium = has({ plan: "premium" }) || has({ plan: "pro" });
+  // The 'has' helper checks the JWT session token. 
+  // IMPORTANT: You must enable "Billing/Plans" and "Entitlements" in:
+  // Clerk Dashboard -> Sessions -> Customize Session Token
+  
+  const hasOfficialPremium = 
+    has({ plan: "stocktracker" }) || 
+    has({ plan: "premium" }) || 
+    has({ plan: "pro" }) || 
+    has({ plan: "Premium" }) || 
+    has({ plan: "Pro" }) ||
+    has({ plan: "premium-plan" }) ||
+    has({ plan: "pro-plan" }) ||
+    has({ entitlement: "premium" }) ||
+    has({ entitlement: "premium-access" });
   
   if (hasOfficialPremium) return "PREMIUM";
 
@@ -22,7 +33,10 @@ export async function getUserPlan(): Promise<Plan> {
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
   
-  return (user.publicMetadata.plan as Plan) || "FREE";
+  const metadataPlan = user.publicMetadata.plan as Plan;
+  if (metadataPlan === "PREMIUM") return "PREMIUM";
+
+  return "FREE";
 }
 
 /**
