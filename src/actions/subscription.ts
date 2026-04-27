@@ -8,24 +8,22 @@ export type Plan = "FREE" | "PREMIUM";
  * Gets the current plan for the authenticated user from Clerk metadata.
  */
 export async function getUserPlan(): Promise<Plan> {
-  const { userId, has } = await auth();
+  const { userId, sessionClaims } = await auth();
   if (!userId) return "FREE";
 
-  // Priority 1: Official Clerk Billing (if integrated)
-  // The 'has' helper checks the JWT session token. 
-  // IMPORTANT: You must enable "Billing/Plans" and "Entitlements" in:
-  // Clerk Dashboard -> Sessions -> Customize Session Token
+  // Priority 1: Official Clerk Billing / Custom Session Claims
+  // The 'has' helper only checks roles and permissions. 
+  // For custom properties like 'plan' and 'entitlement', we check sessionClaims directly.
+  // IMPORTANT: You must enable these in Clerk Dashboard -> Sessions -> Customize Session Token
   
+  const claims = sessionClaims as any;
   const hasOfficialPremium = 
-    has({ plan: "stocktracker" }) || 
-    has({ plan: "premium" }) || 
-    has({ plan: "pro" }) || 
-    has({ plan: "Premium" }) || 
-    has({ plan: "Pro" }) ||
-    has({ plan: "premium-plan" }) ||
-    has({ plan: "pro-plan" }) ||
-    has({ entitlement: "premium" }) ||
-    has({ entitlement: "premium-access" });
+    [
+      "stocktracker", "premium", "pro", "Premium", "Pro", "premium-plan", "pro-plan"
+    ].includes(claims?.plan) || 
+    [
+      "premium", "premium-access"
+    ].includes(claims?.entitlement);
   
   if (hasOfficialPremium) return "PREMIUM";
 

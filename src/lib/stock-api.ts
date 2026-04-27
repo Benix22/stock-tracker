@@ -429,7 +429,7 @@ export async function getStockNews(symbol: string): Promise<NewsArticle[]> {
 
 export const getMarketMovers = cache(async (type: 'day_gainers' | 'day_losers' = 'day_gainers'): Promise<StockData[]> => {
     try {
-        const result = await yahooFinance.screener({ scrIds: type, count: 5 });
+        const result = await yahooFinance.screener({ scrIds: type, count: 5 }, { validateResult: false });
         return result.quotes.map((quote: any) => ({
             symbol: quote.symbol,
             price: quote.regularMarketPrice ?? 0,
@@ -443,7 +443,24 @@ export const getMarketMovers = cache(async (type: 'day_gainers' | 'day_losers' =
             dividendYield: quote.dividendYield,
             eps: quote.epsTrailingTwelveMonths,
         }));
-    } catch (error) {
+    } catch (error: any) {
+        // Fallback for YahooValidationError: if validation fails, we can often still use the raw result
+        if (error.name === 'YahooValidationError' && error.result?.quotes) {
+            console.warn(`Yahoo validation failed for ${type}, but using partial results.`);
+            return error.result.quotes.map((quote: any) => ({
+                symbol: quote.symbol,
+                price: quote.regularMarketPrice ?? 0,
+                change: quote.regularMarketChange ?? 0,
+                changePercent: quote.regularMarketChangePercent ?? 0,
+                name: quote.shortName || quote.longName || quote.symbol,
+                marketCap: quote.marketCap,
+                fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
+                fiftyTwoWeekLow: quote.fiftyTwoWeekLow,
+                trailingPE: quote.trailingPE,
+                dividendYield: quote.dividendYield,
+                eps: quote.epsTrailingTwelveMonths,
+            }));
+        }
         console.error(`Failed to fetch market movers (${type}):`, error);
         return [];
     }
@@ -474,7 +491,7 @@ export async function getStockRecommendations(symbol: string): Promise<Recommend
     try {
         const result = await yahooFinance.quoteSummary(symbol, {
             modules: ['upgradeDowngradeHistory', 'financialData', 'recommendationTrend']
-        });
+        }, { validateResult: false });
 
         if (!result) return { recommendations: [] };
 
@@ -519,7 +536,7 @@ export async function getStockProfile(symbol: string): Promise<StockProfile | nu
     try {
         const result = await yahooFinance.quoteSummary(symbol, {
             modules: ['assetProfile', 'defaultKeyStatistics', 'price', 'quoteType', 'summaryDetail']
-        });
+        }, { validateResult: false });
 
         if (!result) return null;
 
@@ -640,7 +657,7 @@ export async function getStockCalendar(symbol: string): Promise<CalendarEvent[]>
     try {
         const result = await yahooFinance.quoteSummary(symbol, {
             modules: ['calendarEvents', 'defaultKeyStatistics', 'summaryDetail', 'upgradeDowngradeHistory', 'earnings']
-        });
+        }, { validateResult: false });
 
         const events: CalendarEvent[] = [];
 
