@@ -81,29 +81,38 @@ const MacroIndicators = memo(({ countryCode, eurostatData }: { countryCode: stri
                         const data = await getFredSeries(config.id, config.units);
                         val = data?.value ?? null;
                     }
-                    return { key, val, isCurrency: config.isCurrency, isPercent: config.isPercent };
+                    return { key, val, source: config.source, isCurrency: config.isCurrency, isPercent: config.isPercent };
                 }));
 
                 const hasFredData = fredResults.some(r => r.val !== null);
 
                 if (hasFredData) {
                     const newIndicators: Record<string, any> = {};
-                    fredResults.forEach(res => newIndicators[res.key] = { val: res.val, isCurrency: res.isCurrency, isPercent: res.isPercent });
+                    fredResults.forEach(res => newIndicators[res.key] = { 
+                        val: res.val, 
+                        source: res.source, 
+                        isCurrency: res.isCurrency, 
+                        isPercent: res.isPercent 
+                    });
                     setIndicators(newIndicators);
                 } else {
                     // FRED key missing or unavailable — fall back to IMF DataMapper (no API key required)
                     const imf = await getIMFMacro(countryCode);
                     if (imf) {
                         setIndicators({
-                            "pib":     { val: imf.pib,     isPercent: true },
-                            "ipc":     { val: imf.ipc,     isPercent: true },
-                            "paro":    { val: imf.paro,    isPercent: true },
-                            "balanza": { val: imf.balanza, isPercent: true }, // % of GDP
-                            "pmi":     { val: null }
+                            "pib":     { val: imf.pib,     source: 'IMF', isPercent: true },
+                            "ipc":     { val: imf.ipc,     source: 'IMF', isPercent: true },
+                            "paro":    { val: imf.paro,    source: 'IMF', isPercent: true },
+                            "balanza": { val: imf.balanza, source: 'IMF', isPercent: true }, // % of GDP
+                            "pmi":     { val: null,        source: 'IMF' }
                         });
                     } else {
                         const newIndicators: Record<string, any> = {};
-                        fredResults.forEach(res => newIndicators[res.key] = { val: null, isPercent: res.isPercent });
+                        fredResults.forEach(res => newIndicators[res.key] = { 
+                            val: null, 
+                            source: res.source || 'N/A', 
+                            isPercent: res.isPercent 
+                        });
                         setIndicators(newIndicators);
                     }
                 }
