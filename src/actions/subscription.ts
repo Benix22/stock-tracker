@@ -16,7 +16,7 @@ export async function getUserPlan(): Promise<Plan> {
   console.log("=== CLERK DEBUG INFO ===");
   console.log("Session Claims:", JSON.stringify(claims, null, 2));
   
-  const validPremiumKeys = ["stocktracker", "premium", "pro", "Premium", "Pro", "premium-plan", "pro-plan", "premium-access"];
+  const validPremiumKeys = ["stocktracker", "u:stocktracker", "premium", "pro", "Premium", "Pro", "premium-plan", "pro-plan", "premium-access"];
   
   const checkClaim = (claimVal: any) => {
     if (!claimVal) return false;
@@ -27,6 +27,7 @@ export async function getUserPlan(): Promise<Plan> {
   };
 
   const hasOfficialPremium = 
+    checkClaim(claims?.pla) || 
     checkClaim(claims?.plan) || 
     checkClaim(claims?.plans) || 
     checkClaim(claims?.entitlement) || 
