@@ -287,7 +287,7 @@ export function StockDetailClient({ symbol, initialPerformance, profile, isIndex
                         isIndex={isIndex}
                     />
                 </div>
-                {profile && !isIndex && (
+                {profile && !isIndex && !symbol.includes('-USD') && !symbol.includes('-EUR') && (
                     <div className="w-full xl:w-80 2xl:w-96 shrink-0 flex">
                         <StockProfile profile={profile} />
                     </div>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
-import { LayoutDashboard, Briefcase, Grid3X3, LineChart, Menu, X, ChevronRight, Trophy, CalendarDays, Globe, Mail } from "lucide-react";
+import { LayoutDashboard, Briefcase, Grid3X3, LineChart, Menu, X, ChevronRight, Trophy, CalendarDays, Globe, Mail, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PlanBadge } from "@/components/PlanBadge";
 
@@ -33,6 +33,7 @@ export function Navbar() {
     { label: "My Portfolio", href: "/portfolio", icon: <Briefcase className="w-4 h-4" /> },
     { label: "Traders League", href: "/league", icon: <Trophy className="w-4 h-4" /> },
     { label: "Heatmap", href: "/heatmap", icon: <Grid3X3 className="w-4 h-4" /> },
+    { label: "Crypto", href: "/crypto", icon: <Coins className="w-4 h-4" /> },
     { label: "Pricing", href: "/pricing", icon: <Mail className="w-4 h-4" /> },
   ];
 

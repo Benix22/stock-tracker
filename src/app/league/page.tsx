@@ -45,7 +45,7 @@ export default async function LeaguePage() {
     const currentYear = now.getFullYear();
 
     return (
-        <div className="min-h-screen bg-[#030303] text-white p-4 md:p-8 animate-in fade-in duration-700">
+        <div className="min-h-screen bg-gradient-to-br from-[#2a204f] via-[#181329] to-[#100c1a] text-white p-4 md:p-8 animate-in fade-in duration-700">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* Hero Section */}
@@ -56,7 +56,7 @@ export default async function LeaguePage() {
 
                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                         <div className="space-y-4 text-center md:text-left">
-                            <div className="inline-flex items-center gap-2 bg-primary/20 text-primary px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-[0.2em]">
+                            <div className="inline-flex items-center gap-2 bg-indigo-500/20 text-indigo-200 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-[0.2em]">
                                 <Sparkles className="w-4 h-4" />
                                 {currentMonthName} {currentYear} Season
                             </div>
