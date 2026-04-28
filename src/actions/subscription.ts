@@ -12,24 +12,32 @@ export async function getUserPlan(): Promise<Plan> {
   if (!userId) return "FREE";
 
   // Priority 1: Official Clerk Billing / Custom Session Claims
-  // The 'has' helper only checks roles and permissions. 
-  // For custom properties like 'plan' and 'entitlement', we check sessionClaims directly.
-  // IMPORTANT: You must enable these in Clerk Dashboard -> Sessions -> Customize Session Token
-  
   const claims = sessionClaims as any;
+  console.log("=== CLERK DEBUG INFO ===");
+  console.log("Session Claims:", JSON.stringify(claims, null, 2));
+  
+  const validPremiumKeys = ["stocktracker", "premium", "pro", "Premium", "Pro", "premium-plan", "pro-plan", "premium-access"];
+  
+  const checkClaim = (claimVal: any) => {
+    if (!claimVal) return false;
+    if (Array.isArray(claimVal)) {
+      return claimVal.some(val => validPremiumKeys.includes(val));
+    }
+    return validPremiumKeys.includes(claimVal);
+  };
+
   const hasOfficialPremium = 
-    [
-      "stocktracker", "premium", "pro", "Premium", "Pro", "premium-plan", "pro-plan"
-    ].includes(claims?.plan) || 
-    [
-      "premium", "premium-access"
-    ].includes(claims?.entitlement);
+    checkClaim(claims?.plan) || 
+    checkClaim(claims?.plans) || 
+    checkClaim(claims?.entitlement) || 
+    checkClaim(claims?.entitlements);
   
   if (hasOfficialPremium) return "PREMIUM";
 
   // Priority 2: Manual Metadata (Legacy/Development)
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
+  console.log("Public Metadata:", JSON.stringify(user.publicMetadata, null, 2));
   
   const metadataPlan = user.publicMetadata.plan as Plan;
   if (metadataPlan === "PREMIUM") return "PREMIUM";
