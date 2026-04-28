@@ -64,7 +64,8 @@ export function LeagueTradeWidget({ symbol, currentPrice }: { symbol: string, cu
     if (loading) return null;
     if (!participant) return null; // Only show if user is in league
 
-    const totalCost = parseFloat(shares) * currentPrice;
+    const parsedShares = parseFloat(shares) || 0;
+    const totalCost = parsedShares * currentPrice;
     const canAfford = participant.cashBalance >= totalCost;
 
     return (
@@ -104,9 +105,15 @@ export function LeagueTradeWidget({ symbol, currentPrice }: { symbol: string, cu
                             <Input 
                                 type="number" 
                                 value={shares}
-                                onChange={e => setShares(e.target.value)}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    if (!val.includes('-')) setShares(val);
+                                }}
+                                onKeyDown={e => {
+                                    if (e.key === '-') e.preventDefault();
+                                }}
                                 className="h-14 bg-white/5 border-white/10 rounded-2xl text-xl font-bold pl-4 focus:ring-amber-500/50 text-white"
-                                min="0.01"
+                                min="0"
                                 step="any"
                             />
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground uppercase opacity-40">Qty</div>
@@ -135,13 +142,13 @@ export function LeagueTradeWidget({ symbol, currentPrice }: { symbol: string, cu
                             variant="outline" 
                             className="h-14 rounded-2xl border-white/10 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/20 font-black text-xs uppercase tracking-widest"
                             onClick={() => handleTrade('SELL')}
-                            disabled={executing}
+                            disabled={executing || ownedShares <= 0 || !shares || parseFloat(shares) <= 0}
                         >
                             Sell Position
                         </Button>
                         <Button 
                             className={`h-14 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all ${
-                                !canAfford ? 'bg-muted cursor-not-allowed' : 'bg-primary hover:bg-primary/90 shadow-primary/20 hover:scale-[1.02]'
+                                !canAfford ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary hover:bg-primary/90 shadow-primary/20 hover:scale-[1.02]'
                             }`}
                             onClick={() => handleTrade('BUY')}
                             disabled={executing || !canAfford}
