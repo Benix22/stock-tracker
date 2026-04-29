@@ -75,7 +75,7 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
             } catch (error) {
                 console.error("Failed to update quotes", error);
             }
-        }, 5000); // 5s is a good balance for crypto/forex
+        }, 500); // Real-time: 0.5s (500ms)
 
         return () => clearInterval(interval);
     }, [stocks, indices]); // Need to watch these to keep symbols fresh

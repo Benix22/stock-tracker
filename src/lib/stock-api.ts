@@ -48,6 +48,7 @@ export interface StockData {
     };
     logoUrl?: string;
     currency?: string;
+    isLive?: boolean;
 }
 
 export interface HistoricalDataPoint {
@@ -81,10 +82,16 @@ export interface CalendarEvent {
 }
 
 import { getRealTimeQuote, getBatchRealTimeQuotes } from './alpaca';
+import { getStockPriceFromRedis, getBatchStockPricesFromRedis } from './redis';
 
 export const getStockQuote = cache(async (symbol: string): Promise<StockData | null> => {
     try {
-        const quote = await yahooFinance.quote(symbol);
+        const [quote, redisPrice, logoUrl] = await Promise.all([
+            yahooFinance.quote(symbol),
+            getStockPriceFromRedis(symbol),
+            getStockLogo(symbol)
+        ]);
+
         if (!quote) {
             console.warn(`No quote found for ${symbol}`);
             return null;
@@ -102,12 +109,16 @@ export const getStockQuote = cache(async (symbol: string): Promise<StockData | n
             trailingPE: quote.trailingPE,
             dividendYield: quote.dividendYield,
             eps: quote.epsTrailingTwelveMonths,
-            logoUrl: await getStockLogo(symbol),
+            logoUrl: logoUrl,
             currency: quote.currency || 'USD',
         };
 
         const hasAlpacaKeys = process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY;
-        if (hasAlpacaKeys && !symbol.startsWith('^') && !symbol.includes('=') && !symbol.includes('-')) {
+
+        if (redisPrice !== null) {
+            data.price = redisPrice;
+            data.isLive = true;
+        } else if (hasAlpacaKeys && !symbol.startsWith('^') && !symbol.includes('=') && !symbol.includes('-')) {
             const alpacaData = await getRealTimeQuote(symbol);
             if (alpacaData) {
                 data.price = alpacaData.price;
@@ -174,25 +185,18 @@ export const getBatchStockQuotes = cache(async (symbols: string[]): Promise<Stoc
     // Unique and uppercase symbols for the batch call
     const uniqueSymbols = Array.from(new Set(symbols.map(s => s.toUpperCase())));
 
-    let alpacaResults: any[] = [];
     const hasAlpacaKeys = process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY;
-
-    if (hasAlpacaKeys) {
-        const alpacaSymbols = uniqueSymbols.filter(s => !s.startsWith('^') && !s.includes('=') && !s.includes('-'));
-        if (alpacaSymbols.length > 0) {
-            try {
-                alpacaResults = await getBatchRealTimeQuotes(alpacaSymbols);
-            } catch (e) {
-                console.warn("Alpaca batch fetch failed", e);
-            }
-        }
-    }
-
-    const alpacaMap = new Map(alpacaResults.map(r => [r.symbol, r]));
+    const alpacaSymbols = hasAlpacaKeys ? uniqueSymbols.filter(s => !s.startsWith('^') && !s.includes('=') && !s.includes('-')) : [];
 
     try {
-        // Yahoo Finance batch quote
-        const yahooQuotes = await yahooFinance.quote(uniqueSymbols);
+        // Fetch ALL sources in parallel
+        const [alpacaResults, redisPrices, yahooQuotes] = await Promise.all([
+            alpacaSymbols.length > 0 ? getBatchRealTimeQuotes(alpacaSymbols) : Promise.resolve([]),
+            getBatchStockPricesFromRedis(uniqueSymbols),
+            yahooFinance.quote(uniqueSymbols)
+        ]);
+
+        const alpacaMap = new Map((alpacaResults as any[]).map(r => [r.symbol, r]));
         const quotesArray = Array.isArray(yahooQuotes) ? yahooQuotes : [yahooQuotes];
 
         const results = await Promise.all(quotesArray.map(async (quote) => {
@@ -200,6 +204,7 @@ export const getBatchStockQuotes = cache(async (symbols: string[]): Promise<Stoc
             
             const symbol = quote.symbol;
             const alpacaData = alpacaMap.get(symbol.toUpperCase().split('.')[0]);
+            const redisPrice = redisPrices[symbol.toUpperCase().split('.')[0]] || redisPrices[symbol.toUpperCase()];
 
             const data: StockData = {
                 symbol: quote.symbol,
@@ -217,7 +222,10 @@ export const getBatchStockQuotes = cache(async (symbols: string[]): Promise<Stoc
                 currency: quote.currency || 'USD',
             };
 
-            if (alpacaData) {
+            if (redisPrice !== undefined) {
+                data.price = redisPrice;
+                data.isLive = true;
+            } else if (alpacaData) {
                 data.price = alpacaData.price;
                 data.change = alpacaData.change;
                 data.changePercent = alpacaData.changePercent;
@@ -243,6 +251,7 @@ export interface IntradayResult {
     data: HistoricalDataPoint[];
     previousClose: number;
     previousCloseDate?: string;
+    isLive?: boolean;
 }
 
 export async function getIntradayData(symbol: string): Promise<IntradayResult | null> {
@@ -297,6 +306,8 @@ export async function getIntradayData(symbol: string): Promise<IntradayResult | 
             previousCloseDate = lastPrevQuote.date.toISOString();
         }
 
+        const redisPrice = await getStockPriceFromRedis(symbol);
+
         const data = currentSessionQuotes
             .filter(q => q.close) // Filter nulls
             .map((item) => ({
@@ -308,10 +319,18 @@ export async function getIntradayData(symbol: string): Promise<IntradayResult | 
                 volume: item.volume as number,
             }));
 
+        // Append or update last point with Redis price if available
+        if (redisPrice !== null && data.length > 0) {
+            const lastPoint = data[data.length - 1];
+            lastPoint.close = redisPrice;
+            // Optionally we could mark the whole result as live
+        }
+
         return {
             data,
             previousClose,
-            previousCloseDate
+            previousCloseDate,
+            isLive: redisPrice !== null
         };
     } catch (error) {
         console.warn(`Intraday fetch failed for ${symbol}`, error);
