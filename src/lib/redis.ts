@@ -37,7 +37,8 @@ export async function getStockPriceFromRedis(symbol: string): Promise<number | n
         
         return value ? parseFloat(value) : null;
     } catch (error) {
-        console.warn(`Redis fetch for ${symbol} timed out or failed:`, error.message);
+        const msg = error instanceof Error ? error.message : String(error);
+        console.warn(`Redis fetch for ${symbol} timed out or failed:`, msg);
         return null;
     }
 }
@@ -73,7 +74,8 @@ export async function getBatchStockPricesFromRedis(symbols: string[]): Promise<R
 
         return results;
     } catch (error) {
-        console.warn('Redis batch fetch timed out or failed:', error.message);
+        const msg = error instanceof Error ? error.message : String(error);
+        console.warn('Redis batch fetch timed out or failed:', msg);
         return {};
     }
 }
