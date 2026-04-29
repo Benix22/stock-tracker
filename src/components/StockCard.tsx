@@ -12,6 +12,8 @@ interface StockData {
     changePercent: number;
     name: string;
     logoUrl?: string;
+    currency?: string;
+    isLive?: boolean;
 }
 
 interface StockCardProps {
@@ -88,8 +90,13 @@ export function StockCard({ stock }: StockCardProps) {
                     )}
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">
+                    <div className="text-2xl font-bold flex items-center gap-2">
                         <FlashingDigits value={stock.price} decimals={decimals} prefix="$" onlyLastTwo={false} />
+                        {stock.isLive && (
+                            <span className="bg-blue-500/10 text-blue-500 text-[10px] px-1.5 py-0.5 rounded border border-blue-500/20 font-bold animate-pulse">
+                                VPS
+                            </span>
+                        )}
                     </div>
                     <p className={`text-xs ${isPositive ? "text-green-500" : "text-red-500"}`}>
                         {isPositive ? "+" : ""}{stock.change.toFixed(decimals)} US$ ({stock.changePercent.toFixed(2)}%)

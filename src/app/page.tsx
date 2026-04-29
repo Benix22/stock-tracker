@@ -17,8 +17,13 @@ export default async function Dashboard() {
   // Combine all symbols for a single batch fetch
   const allSymbols = Array.from(new Set([...dashSymbols, ...indexSymbols, ...OVERVIEW_SYMBOLS]));
 
-  // 1. Single Batch Fetch for ALL initial quotes
-  const allQuotes = await getBatchStockQuotes(allSymbols);
+  // 1. Fetch EVERYTHING in parallel (Quotes, Histories, Movers)
+  const [allQuotes, stocksHistory, gainers, losers] = await Promise.all([
+    getBatchStockQuotes(allSymbols),
+    Promise.all(dashSymbols.map(sym => getStockHistory(sym))),
+    getMarketMovers('day_gainers'),
+    getMarketMovers('day_losers')
+  ]);
   
   // 2. Map quotes back to their respective groups
   const dashQuotes = dashSymbols.map(sym => allQuotes.find(q => q?.symbol === sym) || null);
@@ -28,19 +33,12 @@ export default async function Dashboard() {
   });
   const overviewQuotes = OVERVIEW_SYMBOLS.map(sym => allQuotes.find(q => q?.symbol === sym) || null);
 
-  // 3. Parallel fetch of histories for dashboard stocks (still needed for charts)
-  const stocksDataWithHistory = await Promise.all(
-    dashSymbols.map(async (sym, i) => {
-      const history = await getStockHistory(sym);
-      return { symbol: sym, quote: dashQuotes[i], history };
-    })
-  );
-
-  // 4. Other data (movers) - these are screener calls, separate but parallel
-  const [gainers, losers] = await Promise.all([
-    getMarketMovers('day_gainers'),
-    getMarketMovers('day_losers')
-  ]);
+  // 3. Combine quotes with histories
+  const stocksDataWithHistory = dashSymbols.map((sym, i) => ({
+      symbol: sym,
+      quote: dashQuotes[i],
+      history: stocksHistory[i]
+  }));
 
   return (
     <div className="min-h-screen bg-background p-8">

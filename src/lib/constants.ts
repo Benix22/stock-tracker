@@ -18,4 +18,4 @@ export const INDICES_CONFIG: IndexInfo[] = [
 
 export const OVERVIEW_SYMBOLS = ["BTC-USD", "ETH-USD", "BZ=F", "NG=F", "GC=F", "HG=F", "EURUSD=X", "GBPUSD=X", "JPY=X", "CHF=X", "AUDUSD=X"];
 
-export const DASHBOARD_SYMBOLS = ['SGHC', 'NVDA', 'MSFT', 'GOOGL', 'BTC-USD', 'EUR=X'];
+export const DASHBOARD_SYMBOLS = ['AAPL', 'MSFT', 'TSLA', 'SGHC', 'NVDA', 'BTC-USD', 'EUR=X'];

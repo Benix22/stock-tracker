@@ -20,13 +20,20 @@ interface CryptoData {
 
 async function getCryptoData(): Promise<CryptoData[]> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
     const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false", {
       next: { revalidate: 60 },
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
+    
     if (!res.ok) throw new Error("Failed to fetch crypto data");
     return res.json();
   } catch (error) {
-    console.error(error);
+    console.error("Crypto fetch failed or timed out:", error);
     return [];
   }
 }

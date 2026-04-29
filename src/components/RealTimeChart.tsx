@@ -74,6 +74,7 @@ export function RealTimeChart({
     const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const [gapCount, setGapCount] = useState(0);
     const [isMarketOpen, setIsMarketOpen] = useState(true);
+    const [isLive, setIsLive] = useState(false);
 
     useEffect(() => {
         setIsMarketOpen(checkMarketOpen());
@@ -202,6 +203,7 @@ export function RealTimeChart({
                     setData(chartData);
                     setGapCount(gaps);
                     setPreviousClose(result.previousClose);
+                    setIsLive(!!result.isLive);
                     setLastUpdated(new Date());
 
                     const latest = result.data[result.data.length - 1];
@@ -220,7 +222,7 @@ export function RealTimeChart({
             fetchData().then(() => setLoading(false));
         }
 
-        const interval = setInterval(fetchData, 2000);
+        const interval = setInterval(fetchData, 500);
         return () => clearInterval(interval);
     }, [symbol, initialData.length, isCustom, onPriceUpdate]);
 
@@ -327,16 +329,26 @@ export function RealTimeChart({
                                 <span className="text-muted-foreground ml-2 text-[10px] md:text-xs">{referenceLabel}</span>
                             </div>
 
-                            <div className={`text-2xl md:text-4xl font-bold ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : "text-foreground"
+                            <div className={`text-2xl md:text-4xl font-bold flex items-center gap-3 ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : "text-foreground"
                                 }`}>
                                 <FlashingDigits value={currentPrice} decimals={decimals} prefix={isIndex ? "" : "$"} />
+                                {isLive && (
+                                    <span className="bg-blue-500/10 text-blue-500 text-xs px-2 py-1 rounded border border-blue-500/20 font-bold animate-pulse">
+                                        VPS LIVE
+                                    </span>
+                                )}
                             </div>
                         </div>
                     ) : (
-                        <div className="flex items-center">
+                        <div className="flex items-center gap-3">
                             <span className="text-2xl md:text-4xl font-bold text-foreground">
                                 <FlashingDigits value={currentPrice} decimals={decimals} prefix={isIndex ? "" : "$"} />
                             </span>
+                            {isLive && (
+                                <span className="bg-blue-500/10 text-blue-500 text-xs px-2 py-1 rounded border border-blue-500/20 font-bold animate-pulse">
+                                    VPS LIVE
+                                </span>
+                            )}
                         </div>
                     )}
                 </div>
