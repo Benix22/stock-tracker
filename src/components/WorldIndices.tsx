@@ -1,12 +1,13 @@
 "use client"
 
 import { useEffect, useState, useRef, memo } from "react";
+import { useRouter } from "next/navigation";
 import { getBatchStockQuotes } from "@/actions/stock";
 import { checkMarketOpen } from "@/lib/market";
 import { StockData } from "@/lib/stock-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FlashingDigits } from "@/components/FlashingDigits";
-import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
+import { ArrowUpIcon, ArrowDownIcon, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { InterestRate } from "@/actions/trading-economics";
 import { getUSInterestRate, getFredSeries } from "@/actions/fred";
@@ -187,6 +188,16 @@ const StockIndexHeader = memo(({ index, flashClass }: { index: StockData & Index
                             <span>{isPositive ? '+' : ''}{index.changePercent.toFixed(2)}%</span>
                         </div>
                     </div>
+                    {index.symbol === '^IBEX' && (
+                        <Link 
+                            href="/ibex35" 
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/10 text-blue-500 text-[9px] font-bold rounded border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+                        >
+                            <TrendingUp className="w-3 h-3" />
+                            Explore IBEX 35
+                        </Link>
+                    )}
                 </div>
             </CardContent>
         </>
@@ -298,6 +309,8 @@ export function WorldIndices({ showMacro = true, initialData = [], disablePollin
 
     if (indicesData.length === 0 && interestRates.length === 0) return null;
 
+    const router = useRouter();
+
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 px-1">
@@ -337,8 +350,8 @@ export function WorldIndices({ showMacro = true, initialData = [], disablePollin
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {indicesData.map((index) => (
-                    <Link key={index.symbol} href={`/stock/${index.symbol}`} className="block h-full">
-                        <Card className={`w-full h-full transition-colors duration-1000 relative overflow-hidden ${flashStates[index.symbol] || ""} hover:bg-accent/50 cursor-pointer flex flex-col`}>
+                    <div key={index.symbol} onClick={() => router.push(`/stock/${index.symbol}`)} className="block h-full cursor-pointer">
+                        <Card className={`w-full h-full transition-colors duration-1000 relative overflow-hidden ${flashStates[index.symbol] || ""} hover:bg-accent/50 flex flex-col`}>
                             <StockIndexHeader index={index} flashClass={flashStates[index.symbol] || ""} />
                             {showMacro && (
                                 <div className="px-4 pb-4">
@@ -346,7 +359,7 @@ export function WorldIndices({ showMacro = true, initialData = [], disablePollin
                                 </div>
                             )}
                         </Card>
-                    </Link>
+                    </div>
                 ))}
             </div>
         </div>

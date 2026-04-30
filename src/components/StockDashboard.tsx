@@ -10,7 +10,7 @@ import { SearchHistoryInput } from "@/components/SearchHistoryInput";
 import { getSearchHistory, addToSearchHistory } from "@/actions/history";
 
 import Link from "next/link";
-import { ChevronRight, LineChart, Briefcase } from "lucide-react";
+import { ChevronRight, LineChart, Briefcase, TrendingUp } from "lucide-react";
 import { UserButton, SignInButton, useUser } from "@clerk/nextjs";
 import { OVERVIEW_SYMBOLS } from "@/lib/constants";
 import { MarketOverviewCards } from "@/components/MarketOverviewCards";
