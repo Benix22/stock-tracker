@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronRight } from "lucide-react"
 import { useEffect, useState, useRef } from "react"
 import { getBatchStockQuotes } from "@/actions/stock"
+import { checkMarketOpen } from "@/lib/market"
 import { FlashingDigits } from "@/components/FlashingDigits"
 import Link from "next/link"
 
@@ -13,6 +14,14 @@ export function MarketOverviewCards({ initialQuotes = [], disablePolling = false
     const [cryptoData, setCryptoData] = useState({ price: 2.39, change: -6.72 })
     const [dxyData, setDxyData] = useState({ price: 98.801, change: 1.67 })
     const [currenciesData, setCurrenciesData] = useState({ price: 1.0854, change: 0.12 })
+    const [isMarketOpen, setIsMarketOpen] = useState(checkMarketOpen())
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIsMarketOpen(checkMarketOpen());
+        }, 60000);
+        return () => clearInterval(interval);
+    }, []);
 
     const [cryptoStocks, setCryptoStocks] = useState([
         { name: "Bitcoin", symbol: "BTC-USD", price: 71500, change: 4.50, icon: "₿", color: "bg-orange-500" },
@@ -81,10 +90,11 @@ export function MarketOverviewCards({ initialQuotes = [], disablePolling = false
         }
 
         if (!disablePolling) {
-            const interval = setInterval(updateMarketData, 5000)
+            const pollInterval = isMarketOpen ? 5000 : 30000;
+            const interval = setInterval(updateMarketData, pollInterval)
             return () => clearInterval(interval)
         }
-    }, [initialQuotes, disablePolling])
+    }, [initialQuotes, disablePolling, isMarketOpen])
 
 
 

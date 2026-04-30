@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { StockData, HistoricalDataPoint } from "@/lib/stock-api";
 import { StockCard } from "@/components/StockCard";
 import { StockChart } from "@/components/StockChart";
+import { checkMarketOpen } from "@/lib/market";
 import { fetchStockData, getBatchStockQuotes } from "@/actions/stock";
 import { SearchHistoryInput } from "@/components/SearchHistoryInput";
 import { getSearchHistory, addToSearchHistory } from "@/actions/history";
@@ -35,6 +36,14 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
 
     const [indices, setIndices] = useState(initialIndices);
     const [overviewQuotes, setOverviewQuotes] = useState(initialOverviewQuotes);
+    const [isMarketOpen, setIsMarketOpen] = useState(checkMarketOpen());
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setIsMarketOpen(checkMarketOpen());
+        }, 60000);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         getSearchHistory().then(setHistory);
@@ -42,11 +51,11 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
 
     // Unified Real-time updates
     useEffect(() => {
+        const pollInterval = isMarketOpen ? 500 : 30000; // 0.5s if open, 30s if closed
+
         const interval = setInterval(async () => {
             const currentDashSymbols = stocks.map(s => s.symbol).filter(Boolean);
             const indexSymbols = indices.map(i => (i as any).symbol);
-            const overviewSymbols = OVERVIEW_SYMBOLS; // Imported in the component now? No, I should import it or define it.
-
             const allSymbols = Array.from(new Set([...currentDashSymbols, ...indexSymbols, ...OVERVIEW_SYMBOLS]));
 
             try {
@@ -71,14 +80,14 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
                 }));
 
                 // Update Overview
-                setOverviewQuotes(updatedQuotes); // The component handles filtering
+                setOverviewQuotes(updatedQuotes);
             } catch (error) {
                 console.error("Failed to update quotes", error);
             }
-        }, 500); // Real-time: 0.5s (500ms)
+        }, pollInterval);
 
         return () => clearInterval(interval);
-    }, [stocks, indices]); // Need to watch these to keep symbols fresh
+    }, [stocks, indices, isMarketOpen]); // Now watching isMarketOpen to switch intervals
 
 
     const handleSearch = async (symbol: string) => {

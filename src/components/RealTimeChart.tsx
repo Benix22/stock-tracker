@@ -222,9 +222,10 @@ export function RealTimeChart({
             fetchData().then(() => setLoading(false));
         }
 
-        const interval = setInterval(fetchData, 500);
+        const pollInterval = isMarketOpen ? 500 : 30000;
+        const interval = setInterval(fetchData, pollInterval);
         return () => clearInterval(interval);
-    }, [symbol, initialData.length, isCustom, onPriceUpdate]);
+    }, [symbol, initialData.length, isCustom, onPriceUpdate, isMarketOpen]);
 
     if (loading && (!displayData || displayData.length === 0)) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;

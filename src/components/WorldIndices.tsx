@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, memo } from "react";
 import { getBatchStockQuotes } from "@/actions/stock";
+import { checkMarketOpen } from "@/lib/market";
 import { StockData } from "@/lib/stock-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FlashingDigits } from "@/components/FlashingDigits";
@@ -198,6 +199,7 @@ export function WorldIndices({ showMacro = true, initialData = [], disablePollin
     const [interestRates, setInterestRates] = useState<InterestRate[]>([]);
     const [eurostatData, setEurostatData] = useState<Record<string, Record<string, number | null>>>({});
     const [flashStates, setFlashStates] = useState<Record<string, string>>({});
+    const [isMarketOpen, setIsMarketOpen] = useState(checkMarketOpen());
 
     const prevPrices = useRef<Record<string, number>>({});
 
@@ -274,17 +276,24 @@ export function WorldIndices({ showMacro = true, initialData = [], disablePollin
             fetchEurostatBatchMacro();
         }
 
+        // Market status update interval
+        const marketStatusInterval = setInterval(() => {
+            setIsMarketOpen(checkMarketOpen());
+        }, 60000);
+
         let indexInterval: NodeJS.Timeout | undefined;
         if (!disablePolling) {
-            indexInterval = setInterval(fetchIndices, 10000);
+            const pollInterval = isMarketOpen ? 10000 : 30000;
+            indexInterval = setInterval(fetchIndices, pollInterval);
         }
         
         const ratesInterval = setInterval(fetchRates, 3600000);
         return () => { 
             if (indexInterval) clearInterval(indexInterval); 
             clearInterval(ratesInterval); 
+            clearInterval(marketStatusInterval);
         };
-    }, [showMacro, disablePolling]);
+    }, [showMacro, disablePolling, isMarketOpen]);
 
 
     if (indicesData.length === 0 && interestRates.length === 0) return null;
