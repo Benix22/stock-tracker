@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { StockData, HistoricalDataPoint } from "@/lib/stock-api";
 import { StockCard } from "@/components/StockCard";
 import { StockChart } from "@/components/StockChart";
@@ -11,10 +11,10 @@ import { getSearchHistory, addToSearchHistory } from "@/actions/history";
 
 import Link from "next/link";
 import { ChevronRight, LineChart, Briefcase, TrendingUp } from "lucide-react";
-import { UserButton, SignInButton, useUser } from "@clerk/nextjs";
 import { OVERVIEW_SYMBOLS } from "@/lib/constants";
 import { MarketOverviewCards } from "@/components/MarketOverviewCards";
 import { WorldIndices } from "@/components/WorldIndices";
+import { useStockSocket } from "@/hooks/useSocket";
 
 interface StockDashboardProps {
     initialStocks: {
@@ -32,11 +32,43 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchInput, setSearchInput] = useState("");
-    const { isSignedIn, isLoaded } = useUser();
 
     const [indices, setIndices] = useState(initialIndices);
     const [overviewQuotes, setOverviewQuotes] = useState(initialOverviewQuotes);
     const [isMarketOpen, setIsMarketOpen] = useState(checkMarketOpen());
+    const { lastUpdate, connected } = useStockSocket();
+
+    // Actualización inmediata por WebSockets
+    useEffect(() => {
+        if (lastUpdate) {
+            // Dashboard Stocks
+            setStocks(prev => prev.map(s => {
+                if (s.symbol === lastUpdate.symbol) {
+                    return {
+                        ...s,
+                        quote: s.quote ? { ...s.quote, price: lastUpdate.price, isLive: true } : null
+                    };
+                }
+                return s;
+            }));
+
+            // Indices
+            setIndices(prev => prev.map(idx => {
+                if ((idx as any).symbol === lastUpdate.symbol) {
+                    return { ...idx, price: lastUpdate.price, isLive: true };
+                }
+                return idx;
+            }));
+
+            // Market Overview
+            setOverviewQuotes(prev => prev.map(q => {
+                if (q.symbol === lastUpdate.symbol) {
+                    return { ...q, price: lastUpdate.price, isLive: true };
+                }
+                return q;
+            }));
+        }
+    }, [lastUpdate]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -49,18 +81,44 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
         getSearchHistory().then(setHistory);
     }, []);
 
+    const symbolsRef = useRef<string[]>([]);
+    const updatingRef = useRef(false);
+    
+    useEffect(() => {
+        const currentDashSymbols = stocks.map(s => s.symbol).filter(Boolean);
+        const indexSymbols = indices.map(i => (i as any).symbol);
+        symbolsRef.current = Array.from(new Set([...currentDashSymbols, ...indexSymbols, ...OVERVIEW_SYMBOLS]));
+    }, [stocks, indices]);
+
+    const connectedRef = useRef(connected);
+    useEffect(() => { connectedRef.current = connected; }, [connected]);
+
     // Unified Real-time updates
     useEffect(() => {
-        const pollInterval = isMarketOpen ? 500 : 1000; // 0.5s if open, 1s if closed
+        let mounted = true;
+        const pollInterval = isMarketOpen ? 5000 : 15000;
 
-        const interval = setInterval(async () => {
-            const currentDashSymbols = stocks.map(s => s.symbol).filter(Boolean);
-            const indexSymbols = indices.map(i => (i as any).symbol);
-            const allSymbols = Array.from(new Set([...currentDashSymbols, ...indexSymbols, ...OVERVIEW_SYMBOLS]));
+        const interval = setInterval(async () => { 
+            // Si el socket está conectado, NO hacemos polling
+            if (connectedRef.current) {
+                return; 
+            }
+
+            if (updatingRef.current) return; 
+            updatingRef.current = true;
+
+            const allSymbols = symbolsRef.current;
+            if (allSymbols.length === 0) {
+                updatingRef.current = false;
+                return;
+            }
 
             try {
+                console.log(`⏱️ [Dashboard] Ejecutando polling de seguridad para ${allSymbols.length} símbolos...`);
                 const updatedQuotes = await getBatchStockQuotes(allSymbols);
+                if (!mounted) return;
                 
+
                 // Update Dashboard Stocks
                 setStocks(prevStocks => prevStocks.map(s => {
                     const newQuote = updatedQuotes.find(q => q?.symbol === s.symbol);
@@ -82,12 +140,17 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
                 // Update Overview
                 setOverviewQuotes(updatedQuotes);
             } catch (error) {
-                console.error("Failed to update quotes", error);
+                if (mounted) console.error("Failed to update quotes", error);
+            } finally {
+                updatingRef.current = false;
             }
         }, pollInterval);
 
-        return () => clearInterval(interval);
-    }, [stocks, indices, isMarketOpen]); // Now watching isMarketOpen to switch intervals
+        return () => {
+            mounted = false;
+            clearInterval(interval);
+        };
+    }, [isMarketOpen, connected]); 
 
 
     const handleSearch = async (symbol: string) => {
@@ -136,7 +199,17 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
             <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex flex-col md:flex-row md:items-center gap-6">
                     <div>
-                        <h1 className="text-4xl font-bold tracking-tight">Market Overview</h1>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-4xl font-bold tracking-tight">Market Overview</h1>
+                            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                connected 
+                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                                : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                            }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                                {connected ? 'VPS Live' : 'Polling'}
+                            </div>
+                        </div>
                         <p className="text-muted-foreground">Real-time evolution of key assets</p>
                     </div>
                 </div>
@@ -178,25 +251,6 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
 
             <MarketOverviewCards initialQuotes={overviewQuotes} disablePolling={true} />
 
-            <div className="space-y-4">
-                <h2 className="text-2xl font-semibold tracking-tight">Historical Evolution</h2>
-                <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
-                    {stocks.map(({ symbol, history }) => (
-                        <StockChart
-                            key={`${symbol}-chart`}
-                            symbol={symbol}
-                            data={history}
-                            color={
-                                symbol === 'NVDA' ? '#76b900' :
-                                    symbol === 'SGHC' ? '#00A3E0' :
-                                        undefined
-                            }
-                            domain={symbol === 'EUR=X' ? [0.6, 1] : undefined}
-                        />
-                    ))}
-                </div>
-            </div>
         </div>
     );
 }
-

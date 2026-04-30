@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { RealTimeChart } from "@/components/RealTimeChart";
 import { StockPerformanceTable } from "@/components/StockPerformance";
 import { getIntradayData, getStockHistoryWithRange } from "@/actions/stock";
@@ -47,9 +47,9 @@ export function StockDetailClient({ symbol, initialPerformance, profile, isIndex
     const [currentRange, setCurrentRange] = useState<{ start: string | null, end: string | null }>({ start: null, end: null });
     const [activeRangeBadge, setActiveRangeBadge] = useState<string>("1D");
 
-    const handleDataUpdate = (price: number) => {
+    const handleDataUpdate = useCallback((price: number) => {
         setLatestPrice(price);
-    };
+    }, []);
 
     const handleDateRangeUpdate = async (start: string | null, end: string | null) => {
         setCurrentRange({ start, end });

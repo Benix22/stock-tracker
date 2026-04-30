@@ -11,7 +11,9 @@
   "dependencies": {
     "@alpacahq/alpaca-trade-api": "^3.0.1",
     "dotenv": "^16.4.5",
-    "redis": "^4.6.13"
+    "express": "^4.19.2",
+    "redis": "^4.6.13",
+    "socket.io": "^4.7.5"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",

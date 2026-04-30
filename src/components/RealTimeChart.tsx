@@ -1,13 +1,14 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { checkMarketOpen } from "@/lib/market";
 import { Area, ComposedChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Line, ReferenceLine } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getIntradayData } from "@/actions/stock";
+import { getIntradayData, fetchStockQuote } from "@/actions/stock";
 import { Loader2, ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import { calculateRSI, calculateBollingerBands } from "@/lib/indicators";
 import { FlashingDigits } from "@/components/FlashingDigits";
+import { useStockSocket } from "@/hooks/useSocket";
 
 interface DataPoint {
     date: string;
@@ -171,60 +172,122 @@ export function RealTimeChart({
         });
     }, [displayData, comparisonData, isComparisonMode, showSMA5, showSMA10, showSMA20, showRSI, showBollinger, rsiData, bbData]);
 
+    const { lastUpdate, connected } = useStockSocket();
+
+    // Actualización instantánea por WebSocket
+    useEffect(() => {
+        if (lastUpdate && lastUpdate.symbol === symbol) {
+            setData(prev => {
+                if (prev.length === 0) return prev;
+                const newData = [...prev];
+                const lastIndex = newData.length - 1;
+                newData[lastIndex] = {
+                    ...newData[lastIndex],
+                    close: lastUpdate.price,
+                    high: Math.max(newData[lastIndex].high, lastUpdate.price),
+                    low: Math.min(newData[lastIndex].low, lastUpdate.price),
+                };
+                return newData;
+            });
+            setIsLive(true);
+            setLastUpdated(new Date());
+            if (onPriceUpdate) onPriceUpdate(lastUpdate.price);
+        }
+    }, [lastUpdate, symbol, onPriceUpdate]);
+
+    const connectedRef = useRef(connected);
+    useEffect(() => { connectedRef.current = connected; }, [connected]);
+
     useEffect(() => {
         if (isCustom) {
             setGapCount(0);
             return;
         }
 
-        const fetchData = async () => {
+        let mounted = true;
+        const fetchData = async (full = false) => {
             try {
-                const result = await getIntradayData(symbol);
-                if (result && result.data.length > 0) {
-                    let chartData = result.data;
-                    let gaps = 0;
+                if (full || data.length === 0) {
+                    const result = await getIntradayData(symbol);
+                    if (result && result.data.length > 0 && mounted) {
+                        let chartData = result.data;
+                        let gaps = 0;
 
-                    // Prepend previous close with flat gap
-                    if (result.previousClose && result.previousCloseDate) {
-                        const prevPoint: DataPoint = {
-                            date: result.previousCloseDate,
-                            open: result.previousClose,
-                            high: result.previousClose,
-                            low: result.previousClose,
-                            close: result.previousClose
-                        };
-                        const firstPoint = chartData[0];
-                        const targetGap = 20;
-                        const gapPoints = generateFlatGapPoints(prevPoint, firstPoint, targetGap);
-                        chartData = [prevPoint, ...gapPoints, ...chartData];
-                        gaps = targetGap + 1;
+                        // Prepend previous close with flat gap
+                        if (result.previousClose && result.previousCloseDate) {
+                            const prevPoint: DataPoint = {
+                                date: result.previousCloseDate,
+                                open: result.previousClose,
+                                high: result.previousClose,
+                                low: result.previousClose,
+                                close: result.previousClose
+                            };
+                            const firstPoint = chartData[0];
+                            const targetGap = 20;
+                            const gapPoints = generateFlatGapPoints(prevPoint, firstPoint, targetGap);
+                            if (mounted) setData([prevPoint, ...gapPoints, ...chartData]);
+                            gaps = targetGap + 1;
+                        } else {
+                            if (mounted) setData(chartData);
+                        }
+
+                        if (mounted) {
+                            setGapCount(gaps);
+                            setPreviousClose(result.previousClose);
+                            setIsLive(!!result.isLive);
+                            setLastUpdated(new Date());
+
+                            const latest = result.data[result.data.length - 1];
+                            if (onPriceUpdate) {
+                                onPriceUpdate(latest.close);
+                            }
+                        }
                     }
-
-                    setData(chartData);
-                    setGapCount(gaps);
-                    setPreviousClose(result.previousClose);
-                    setIsLive(!!result.isLive);
-                    setLastUpdated(new Date());
-
-                    const latest = result.data[result.data.length - 1];
-                    if (onPriceUpdate) {
-                        onPriceUpdate(latest.close);
+                } else if (!connectedRef.current) { // Solo hacemos polling si NO estamos por WebSocket
+                    console.log(`⏱️ [Chart:${symbol}] Ejecutando polling de seguridad...`);
+                    // Optimized: Only fetch the latest quote
+                    const quote = await fetchStockQuote(symbol);
+                    if (quote && mounted) {
+                        setData(prev => {
+                            if (prev.length === 0) return prev;
+                            const newData = [...prev];
+                            const lastIndex = newData.length - 1;
+                            newData[lastIndex] = {
+                                ...newData[lastIndex],
+                                close: quote.price,
+                                high: Math.max(newData[lastIndex].high, quote.price),
+                                low: Math.min(newData[lastIndex].low, quote.price),
+                            };
+                            return newData;
+                        });
+                        setIsLive(!!quote.isLive);
+                        setLastUpdated(new Date());
+                        if (onPriceUpdate) onPriceUpdate(quote.price);
                     }
                 }
             } catch (e) {
-                console.error("Failed to poll data", e);
+                if (mounted) console.error("Failed to poll data", e);
             }
         };
 
-        // Initial fetch if no data
-        if (initialData.length === 0) {
-            setLoading(true);
-            fetchData().then(() => setLoading(false));
-        }
+        // Initial fetch
+        setLoading(true);
+        fetchData(true).then(() => { if (mounted) setLoading(false); });
 
-        const pollInterval = isMarketOpen ? 500 : 1000;
-        const interval = setInterval(fetchData, pollInterval);
-        return () => clearInterval(interval);
+        // Heavy poll (full history) every 5 minutes
+        const heavyInterval = setInterval(() => fetchData(true), 300000);
+        
+        // Light poll (price only) - Solo si el socket está desconectado
+        const pollInterval = isMarketOpen ? 5000 : 15000;
+        const lightInterval = setInterval(() => {
+            if (!connectedRef.current) fetchData(false);
+        }, pollInterval);
+        
+        return () => {
+            mounted = false;
+            clearInterval(heavyInterval);
+            clearInterval(lightInterval);
+        };
     }, [symbol, initialData.length, isCustom, onPriceUpdate, isMarketOpen]);
 
     if (loading && (!displayData || displayData.length === 0)) {

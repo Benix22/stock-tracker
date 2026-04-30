@@ -195,14 +195,17 @@ export const getBatchStockQuotes = cache(async (symbols: string[]): Promise<Stoc
         const [alpacaResults, redisPrices, yahooQuotes] = await Promise.all([
             alpacaSymbols.length > 0 ? getBatchRealTimeQuotes(alpacaSymbols) : Promise.resolve([]),
             getBatchStockPricesFromRedis(uniqueSymbols),
-            yahooFinance.quote(uniqueSymbols)
+            yahooFinance.quote(uniqueSymbols).catch(err => {
+                console.error("Yahoo Finance batch quote failed:", err);
+                return [];
+            })
         ]);
 
         const alpacaMap = new Map((alpacaResults as any[]).map(r => [r.symbol, r]));
-        const quotesArray = Array.isArray(yahooQuotes) ? yahooQuotes : [yahooQuotes];
+        const quotesArray = Array.isArray(yahooQuotes) ? yahooQuotes : (yahooQuotes ? [yahooQuotes] : []);
 
         const results = await Promise.all(quotesArray.map(async (quote) => {
-            if (!quote) return null;
+            if (!quote || !quote.symbol) return null;
             
             const symbol = quote.symbol;
             const alpacaData = alpacaMap.get(symbol.toUpperCase().split('.')[0]);
@@ -220,9 +223,16 @@ export const getBatchStockQuotes = cache(async (symbols: string[]): Promise<Stoc
                 trailingPE: quote.trailingPE,
                 dividendYield: quote.dividendYield,
                 eps: quote.epsTrailingTwelveMonths,
-                logoUrl: await getStockLogo(symbol), // This still happens in parallel for all
+                // Only try to get logo if it's already cached to avoid massive concurrent API calls
+                logoUrl: undefined, 
                 currency: quote.currency || 'USD',
             };
+
+            // Non-blocking logo fetch check for cache only
+            const cleanSymbol = symbol.split('.')[0].split('-')[0].split('=')[0].toUpperCase();
+            if (fs.existsSync(path.join(process.cwd(), 'public', 'logos', `${cleanSymbol}.png`))) {
+                data.logoUrl = `/logos/${cleanSymbol}.png`;
+            }
 
             const isMarketOpen = checkMarketOpen();
 
@@ -238,12 +248,10 @@ export const getBatchStockQuotes = cache(async (symbols: string[]): Promise<Stoc
             return data;
         }));
 
-        return results.filter((q): q is StockData => q !== null);
+        return results.filter((r): r is StockData => r !== null);
     } catch (error) {
-        console.error("Batch fetch from Yahoo failed:", error);
-        // Fallback to individual if batch fails (sometimes helpful if one symbol is broken)
-        const fallbacks = await Promise.all(uniqueSymbols.map(s => getStockQuote(s)));
-        return fallbacks.filter((q): q is StockData => q !== null);
+        console.error("Critical error in getBatchStockQuotes:", error);
+        return [];
     }
 });
 

@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useRef } from "react"
 import { getBatchStockQuotes } from "@/actions/stock"
-import { IBEX35_SYMBOLS } from "@/lib/constants"
+import { INDEX_CONSTITUENTS } from "@/lib/constants"
 import { StockData } from "@/lib/stock-api"
 import { FlashingDigits } from "@/components/FlashingDigits"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,26 +10,46 @@ import { Input } from "@/components/ui/input"
 import { Search, ArrowUpRight, ArrowDownRight, TrendingUp, Activity } from "lucide-react"
 import Link from "next/link"
 
-export function Ibex35Table({ initialData }: { initialData: StockData[] }) {
+interface IndexConstituentsTableProps {
+    symbol: string;
+    indexName: string;
+    initialData: StockData[];
+}
+
+export function IndexConstituentsTable({ symbol, indexName, initialData }: IndexConstituentsTableProps) {
     const [stocks, setStocks] = useState<StockData[]>(initialData)
     const [search, setSearch] = useState("")
     const [sortBy, setSortBy] = useState<keyof StockData>("marketCap")
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
 
+    const constituents = INDEX_CONSTITUENTS[symbol] || []
+    const updatingRef = useRef(false)
+
     useEffect(() => {
+        if (constituents.length === 0) return
+        let mounted = true
+
         const interval = setInterval(async () => {
+            if (updatingRef.current) return
+            updatingRef.current = true
+            
             try {
-                const updated = await getBatchStockQuotes(IBEX35_SYMBOLS)
-                if (updated && updated.length > 0) {
+                const updated = await getBatchStockQuotes(constituents)
+                if (updated && updated.length > 0 && mounted) {
                     setStocks(updated)
                 }
             } catch (error) {
-                console.error("Failed to update IBEX 35 data", error)
+                if (mounted) console.error(`Failed to update ${indexName} data`, error)
+            } finally {
+                updatingRef.current = false
             }
-        }, 1000) // Updated every second as requested
+        }, 1000)
 
-        return () => clearInterval(interval)
-    }, [])
+        return () => {
+            mounted = false
+            clearInterval(interval)
+        }
+    }, [symbol, indexName, constituents])
 
     const filteredAndSortedStocks = useMemo(() => {
         return stocks
@@ -47,11 +67,14 @@ export function Ibex35Table({ initialData }: { initialData: StockData[] }) {
     }, [stocks, search, sortBy, sortOrder])
 
     const stats = useMemo(() => {
+        if (stocks.length === 0) return { up: 0, down: 0, avgChange: 0 }
         const up = stocks.filter(s => s.change > 0).length
         const down = stocks.filter(s => s.change < 0).length
         const avgChange = stocks.reduce((acc, s) => acc + s.changePercent, 0) / stocks.length
         return { up, down, avgChange }
     }, [stocks])
+
+    const currencySymbol = symbol.startsWith('^') && !symbol.includes('GSPC') && !symbol.includes('NDX') ? "€" : symbol === '^N225' ? "¥" : "$"
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -93,7 +116,7 @@ export function Ibex35Table({ initialData }: { initialData: StockData[] }) {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <CardTitle className="text-xl font-bold flex items-center gap-2">
                             <span className="w-2 h-6 bg-blue-500 rounded-full" />
-                            IBEX 35 Real-Time
+                            {indexName} Constituents
                         </CardTitle>
                         <div className="relative w-full md:w-72">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -116,7 +139,6 @@ export function Ibex35Table({ initialData }: { initialData: StockData[] }) {
                                 <th className="px-6 py-4 text-right hidden md:table-cell">High</th>
                                 <th className="px-6 py-4 text-right hidden md:table-cell">Low</th>
                                 <th className="px-6 py-4 text-right hidden lg:table-cell">Market Cap</th>
-                                <th className="px-6 py-4"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50">
@@ -125,7 +147,7 @@ export function Ibex35Table({ initialData }: { initialData: StockData[] }) {
                                 return (
                                     <tr key={stock.symbol} className="group hover:bg-muted/30 transition-all duration-300">
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
+                                            <Link href={`/stock/${stock.symbol}`} className="flex items-center gap-3 group/item">
                                                 {stock.logoUrl ? (
                                                     <img src={stock.logoUrl} alt="" className="w-8 h-8 rounded-full bg-white p-1 border border-border/50 shadow-sm" />
                                                 ) : (
@@ -134,38 +156,30 @@ export function Ibex35Table({ initialData }: { initialData: StockData[] }) {
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <div className="font-bold text-foreground group-hover:text-blue-500 transition-colors">{stock.name}</div>
+                                                    <div className="font-bold text-foreground group-hover/item:text-blue-500 transition-colors">{stock.name}</div>
                                                     <div className="text-[10px] text-muted-foreground font-mono">{stock.symbol}</div>
                                                 </div>
-                                            </div>
+                                            </Link>
                                         </td>
-                                        <td className="px-6 py-4 text-right font-mono font-medium">
-                                            <FlashingDigits value={stock.price} decimals={3} prefix="€" onlyLastTwo={false} />
+                                        <td className="px-6 py-4 text-right font-mono font-medium text-xs">
+                                            <FlashingDigits value={stock.price} decimals={2} prefix={currencySymbol} onlyLastTwo={false} />
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                                            <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
                                                 isPositive ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
                                             }`}>
                                                 {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                                                 {Math.abs(stock.changePercent).toFixed(2)}%
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-right font-mono text-xs hidden md:table-cell text-emerald-500/80">
-                                            €{stock.fiftyTwoWeekHigh?.toFixed(2) || "---"}
+                                        <td className="px-6 py-4 text-right font-mono text-[10px] hidden md:table-cell text-emerald-500/80">
+                                            {currencySymbol}{stock.fiftyTwoWeekHigh?.toFixed(2) || "---"}
                                         </td>
-                                        <td className="px-6 py-4 text-right font-mono text-xs hidden md:table-cell text-rose-500/80">
-                                            €{stock.fiftyTwoWeekLow?.toFixed(2) || "---"}
+                                        <td className="px-6 py-4 text-right font-mono text-[10px] hidden md:table-cell text-rose-500/80">
+                                            {currencySymbol}{stock.fiftyTwoWeekLow?.toFixed(2) || "---"}
                                         </td>
-                                        <td className="px-6 py-4 text-right font-mono text-xs hidden lg:table-cell text-muted-foreground">
-                                            {stock.marketCap ? `€${(stock.marketCap / 1e9).toFixed(2)}B` : "---"}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <Link 
-                                                href={`/stock/${stock.symbol}`}
-                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-blue-500/10 rounded-full inline-block"
-                                            >
-                                                <ArrowUpRight className="h-4 w-4 text-blue-500" />
-                                            </Link>
+                                        <td className="px-6 py-4 text-right font-mono text-[10px] hidden lg:table-cell text-muted-foreground">
+                                            {stock.marketCap ? `${currencySymbol}${(stock.marketCap / 1e9).toFixed(2)}B` : "---"}
                                         </td>
                                     </tr>
                                 )

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebSocket Tester - StockTracker</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #0f172a;
+            color: white;
+            padding: 20px;
+        }
+
+        #status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .connected {
+            background: #065f46;
+            color: #34d399;
+        }
+
+        .disconnected {
+            background: #7f1d1d;
+            color: #f87171;
+        }
+
+        #logs {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 8px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            border: 1px solid #334155;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 5px;
+        }
+
+        .price {
+            color: #38bdf8;
+            font-weight: bold;
+        }
+
+        .symbol {
+            color: #fbbf24;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📊 WebSocket Connection Tester</h1>
+    <p>Probando conexión hacia el VPS...</p>
+
+    <div id="status" class="disconnected">🔌 ESTADO: DESCONECTADO</div>
+
+    <div id="logs">
+        <div class="log-entry">Esperando conexión...</div>
+    </div>
+
+    <script>
+        // Intenta obtener la URL del VPS (aquí deberías poner tu IP si no funciona localhost)
+        const WS_URL = "http://192.241.159.122:3001"; // <--- CAMBIA ESTO POR TU IP SI ES NECESARIO
+
+        const statusDiv = document.getElementById('status');
+        const logsDiv = document.getElementById('logs');
+
+        function addLog(msg, isPrice = false) {
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            if (isPrice) {
+                div.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            } else {
+                div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            }
+            logsDiv.prepend(div);
+        }
+
+        addLog(`Intentando conectar a ${WS_URL}...`);
+
+        const socket = io(WS_URL, {
+            transports: ['websocket'],
+            timeout: 5000
+        });
+
+        socket.on('connect', () => {
+            statusDiv.textContent = "✅ ESTADO: CONECTADO AL VPS";
+            statusDiv.className = "connected";
+            addLog("¡Conexión establecida con éxito!");
+        });
+
+        socket.on('disconnect', () => {
+            statusDiv.textContent = "❌ ESTADO: DESCONECTADO";
+            statusDiv.className = "disconnected";
+            addLog("Se ha perdido la conexión.");
+        });
+
+        socket.on('connect_error', (err) => {
+            addLog(`⚠️ ERROR DE CONEXIÓN: ${err.message}`);
+        });
+
+        socket.on('price_update', (data) => {
+            const html = `Recibido: <span class="symbol">${data.symbol}</span> -> <span class="price">$${data.price}</span> (${data.type})`;
+            addLog(html, true);
+        });
+    </script>
+</body>
+
+</html>

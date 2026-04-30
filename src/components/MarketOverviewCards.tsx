@@ -83,17 +83,42 @@ export function MarketOverviewCards({ initialQuotes = [], disablePolling = false
     }
 
     useEffect(() => {
+        let mounted = true;
+
         if (initialQuotes && initialQuotes.length > 0) {
             processQuotes(initialQuotes);
         } else {
-            updateMarketData()
+            updateMarketData();
         }
 
         if (!disablePolling) {
             const pollInterval = isMarketOpen ? 5000 : 1000;
-            const interval = setInterval(updateMarketData, pollInterval)
-            return () => clearInterval(interval)
+            const interval = setInterval(async () => {
+                try {
+                    const quotes = await getBatchStockQuotes(OVERVIEW_SYMBOLS)
+                    if (mounted) {
+                        processQuotes(quotes)
+                        
+                        const simulateUpdate = (prev: number) => {
+                            const variation = (Math.random() - 0.5) * 0.005
+                            return prev * (1 + variation)
+                        }
+
+                        setCryptoData(prev => ({ ...prev, price: simulateUpdate(prev.price) }))
+                        setDxyData(prev => ({ ...prev, price: simulateUpdate(prev.price) }))
+                    }
+                } catch (error) {
+                    if (mounted) console.error("Failed to update market overview data", error)
+                }
+            }, pollInterval)
+            
+            return () => {
+                mounted = false;
+                clearInterval(interval);
+            };
         }
+        
+        return () => { mounted = false; };
     }, [initialQuotes, disablePolling, isMarketOpen])
 
 

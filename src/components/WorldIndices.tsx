@@ -188,16 +188,14 @@ const StockIndexHeader = memo(({ index, flashClass }: { index: StockData & Index
                             <span>{isPositive ? '+' : ''}{index.changePercent.toFixed(2)}%</span>
                         </div>
                     </div>
-                    {index.symbol === '^IBEX' && (
-                        <Link 
-                            href="/ibex35" 
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/10 text-blue-500 text-[9px] font-bold rounded border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
-                        >
-                            <TrendingUp className="w-3 h-3" />
-                            Explore IBEX 35
-                        </Link>
-                    )}
+                    <Link 
+                        href={`/index/${encodeURIComponent(index.symbol)}`} 
+                        onClick={(e) => e.stopPropagation()}
+                        className="explore-btn inline-flex items-center gap-1 px-2 py-1 bg-blue-500/10 text-blue-500 text-[9px] font-bold rounded border border-blue-500/20 hover:bg-blue-500/20 transition-colors relative z-10"
+                    >
+                        <TrendingUp className="w-3 h-3" />
+                        Explore {index.name.split(' ')[0]}
+                    </Link>
                 </div>
             </CardContent>
         </>
@@ -277,34 +275,62 @@ export function WorldIndices({ showMacro = true, initialData = [], disablePollin
         } catch (e) { console.error("Eurostat batch fetch fail", e); }
     };
 
+    // 1. Carga inicial de datos macro (solo al montar el componente)
     useEffect(() => {
+        fetchRates();
+        if (showMacro) {
+            fetchEurostatBatchMacro();
+        }
+        // Refresco de tasas muy espaciado (1 hora)
+        const ratesInterval = setInterval(fetchRates, 3600000);
+        return () => clearInterval(ratesInterval);
+    }, [showMacro]);
+
+    // 2. Gestión de Precios y Polling de respaldo
+    useEffect(() => {
+        let mounted = true;
+
         if (!initialData || initialData.length === 0) {
             fetchIndices(); 
         }
         
-        fetchRates(); 
-        if (showMacro) {
-            fetchEurostatBatchMacro();
-        }
-
-        // Market status update interval
+        // Estado del mercado cada minuto
         const marketStatusInterval = setInterval(() => {
-            setIsMarketOpen(checkMarketOpen());
+            if (mounted) setIsMarketOpen(checkMarketOpen());
         }, 60000);
 
         let indexInterval: NodeJS.Timeout | undefined;
         if (!disablePolling) {
-            const pollInterval = isMarketOpen ? 10000 : 1000;
-            indexInterval = setInterval(fetchIndices, pollInterval);
+            const pollInterval = isMarketOpen ? 10000 : 15000;
+            indexInterval = setInterval(async () => {
+                try {
+                    const symbols = INDICES_CONFIG.map(i => i.symbol);
+                    const updated = await getBatchStockQuotes(symbols);
+                    if (mounted && updated && updated.length > 0) {
+                        setIndicesData(prev => {
+                            const newStates: Record<string, string> = {};
+                            const newData = prev.map(old => {
+                                const latest = updated.find(u => u.symbol === old.symbol);
+                                if (!latest) return old;
+                                if (latest.price > old.price) newStates[old.symbol] = "flash-up";
+                                else if (latest.price < old.price) newStates[old.symbol] = "flash-down";
+                                return { ...old, ...latest };
+                            });
+                            setFlashStates(newStates);
+                            setTimeout(() => { if (mounted) setFlashStates({}); }, 800);
+                            return newData;
+                        });
+                    }
+                } catch (error) { if (mounted) console.error("Index fetch error", error); }
+            }, pollInterval);
         }
         
-        const ratesInterval = setInterval(fetchRates, 3600000);
         return () => { 
-            if (indexInterval) clearInterval(indexInterval); 
-            clearInterval(ratesInterval); 
+            mounted = false;
             clearInterval(marketStatusInterval);
+            if (indexInterval) clearInterval(indexInterval);
         };
-    }, [showMacro, disablePolling, isMarketOpen]);
+    }, [disablePolling, isMarketOpen]); // Eliminamos initialData de aquí
 
 
     if (indicesData.length === 0 && interestRates.length === 0) return null;
@@ -350,7 +376,14 @@ export function WorldIndices({ showMacro = true, initialData = [], disablePollin
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {indicesData.map((index) => (
-                    <div key={index.symbol} onClick={() => router.push(`/stock/${index.symbol}`)} className="block h-full cursor-pointer">
+                    <div 
+                        key={index.symbol} 
+                        onClick={(e) => {
+                            if ((e.target as HTMLElement).closest('.explore-btn')) return;
+                            router.push(`/stock/${index.symbol}`);
+                        }} 
+                        className="block h-full cursor-pointer"
+                    >
                         <Card className={`w-full h-full transition-colors duration-1000 relative overflow-hidden ${flashStates[index.symbol] || ""} hover:bg-accent/50 flex flex-col`}>
                             <StockIndexHeader index={index} flashClass={flashStates[index.symbol] || ""} />
                             {showMacro && (
