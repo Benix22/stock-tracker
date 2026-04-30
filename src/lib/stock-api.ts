@@ -323,11 +323,31 @@ export async function getIntradayData(symbol: string): Promise<IntradayResult | 
                 volume: item.volume as number,
             }));
 
-        // Append or update last point with Redis price if available
-        if (redisPrice !== null && data.length > 0) {
+        const isMarketOpen = checkMarketOpen();
+        const hasAlpacaKeys = process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY;
+
+        // Append or update last point with Redis price if available and market is open
+        if (isMarketOpen && redisPrice !== null && data.length > 0) {
             const lastPoint = data[data.length - 1];
             lastPoint.close = redisPrice;
-            // Optionally we could mark the whole result as live
+        } else if (!isMarketOpen && data.length > 0) {
+            // When closed, try to use Alpaca first to match dashboard
+            let finalPrice = null;
+            if (hasAlpacaKeys && !symbol.startsWith('^') && !symbol.includes('=') && !symbol.includes('-')) {
+                const alpacaData = await getRealTimeQuote(symbol);
+                if (alpacaData) finalPrice = alpacaData.price;
+            }
+
+            // Fallback to Yahoo if Alpaca not available
+            if (finalPrice === null) {
+                const quote = await yahooFinance.quote(symbol);
+                if (quote && quote.regularMarketPrice) finalPrice = quote.regularMarketPrice;
+            }
+
+            if (finalPrice !== null) {
+                const lastPoint = data[data.length - 1];
+                lastPoint.close = finalPrice;
+            }
         }
 
         return {
@@ -377,12 +397,21 @@ export async function getStockPerformance(symbol: string): Promise<StockPerforma
         if (latest.close === null || latest.close === undefined) return null; 
 
         let currentPrice = latest.close as number;
-
+        const isMarketOpen = checkMarketOpen();
         const hasAlpacaKeys = process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY;
-        if (hasAlpacaKeys && !symbol.startsWith('^') && !symbol.includes('=') && !symbol.includes('-')) {
+        const redisPrice = await getStockPriceFromRedis(symbol);
+
+        if (isMarketOpen && redisPrice !== null) {
+             currentPrice = redisPrice;
+        } else if (hasAlpacaKeys && !symbol.startsWith('^') && !symbol.includes('=') && !symbol.includes('-')) {
             const alpacaData = await getRealTimeQuote(symbol);
             if (alpacaData) {
                 currentPrice = alpacaData.price;
+            }
+        } else {
+            const quote = await yahooFinance.quote(symbol);
+            if (quote && quote.regularMarketPrice) {
+                currentPrice = quote.regularMarketPrice;
             }
         }
 
