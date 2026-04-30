@@ -90,7 +90,7 @@ export function MarketOverviewCards({ initialQuotes = [], disablePolling = false
         }
 
         if (!disablePolling) {
-            const pollInterval = isMarketOpen ? 5000 : 30000;
+            const pollInterval = isMarketOpen ? 5000 : 1000;
             const interval = setInterval(updateMarketData, pollInterval)
             return () => clearInterval(interval)
         }

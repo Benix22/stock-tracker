@@ -222,7 +222,7 @@ export function RealTimeChart({
             fetchData().then(() => setLoading(false));
         }
 
-        const pollInterval = isMarketOpen ? 500 : 30000;
+        const pollInterval = isMarketOpen ? 500 : 1000;
         const interval = setInterval(fetchData, pollInterval);
         return () => clearInterval(interval);
     }, [symbol, initialData.length, isCustom, onPriceUpdate, isMarketOpen]);
@@ -333,7 +333,7 @@ export function RealTimeChart({
                             <div className={`text-2xl md:text-4xl font-bold flex items-center gap-3 ${changeValue > 0 ? "text-green-500" : changeValue < 0 ? "text-red-500" : "text-foreground"
                                 }`}>
                                 <FlashingDigits value={currentPrice} decimals={decimals} prefix={isIndex ? "" : "$"} />
-                                {isLive && (
+                                {isLive && isMarketOpen && (
                                     <span className="bg-blue-500/10 text-blue-500 text-xs px-2 py-1 rounded border border-blue-500/20 font-bold animate-pulse">
                                         VPS LIVE
                                     </span>
@@ -345,7 +345,7 @@ export function RealTimeChart({
                             <span className="text-2xl md:text-4xl font-bold text-foreground">
                                 <FlashingDigits value={currentPrice} decimals={decimals} prefix={isIndex ? "" : "$"} />
                             </span>
-                            {isLive && (
+                            {isLive && isMarketOpen && (
                                 <span className="bg-blue-500/10 text-blue-500 text-xs px-2 py-1 rounded border border-blue-500/20 font-bold animate-pulse">
                                     VPS LIVE
                                 </span>

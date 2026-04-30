@@ -51,7 +51,7 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
 
     // Unified Real-time updates
     useEffect(() => {
-        const pollInterval = isMarketOpen ? 500 : 30000; // 0.5s if open, 30s if closed
+        const pollInterval = isMarketOpen ? 500 : 1000; // 0.5s if open, 1s if closed
 
         const interval = setInterval(async () => {
             const currentDashSymbols = stocks.map(s => s.symbol).filter(Boolean);

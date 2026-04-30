@@ -283,7 +283,7 @@ export function WorldIndices({ showMacro = true, initialData = [], disablePollin
 
         let indexInterval: NodeJS.Timeout | undefined;
         if (!disablePolling) {
-            const pollInterval = isMarketOpen ? 10000 : 30000;
+            const pollInterval = isMarketOpen ? 10000 : 1000;
             indexInterval = setInterval(fetchIndices, pollInterval);
         }
         

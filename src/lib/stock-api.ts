@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { checkMarketOpen } from './market';
 import YahooFinance from 'yahoo-finance2';
 import fs from 'fs';
 import path from 'path';
@@ -114,8 +115,9 @@ export const getStockQuote = cache(async (symbol: string): Promise<StockData | n
         };
 
         const hasAlpacaKeys = process.env.ALPACA_API_KEY && process.env.ALPACA_SECRET_KEY;
+        const isMarketOpen = checkMarketOpen();
 
-        if (redisPrice !== null) {
+        if (isMarketOpen && redisPrice !== null) {
             data.price = redisPrice;
             data.isLive = true;
         } else if (hasAlpacaKeys && !symbol.startsWith('^') && !symbol.includes('=') && !symbol.includes('-')) {
@@ -222,7 +224,9 @@ export const getBatchStockQuotes = cache(async (symbols: string[]): Promise<Stoc
                 currency: quote.currency || 'USD',
             };
 
-            if (redisPrice !== undefined) {
+            const isMarketOpen = checkMarketOpen();
+
+            if (isMarketOpen && redisPrice !== undefined) {
                 data.price = redisPrice;
                 data.isLive = true;
             } else if (alpacaData) {
@@ -330,7 +334,7 @@ export async function getIntradayData(symbol: string): Promise<IntradayResult | 
             data,
             previousClose,
             previousCloseDate,
-            isLive: redisPrice !== null
+            isLive: redisPrice !== null && checkMarketOpen()
         };
     } catch (error) {
         console.warn(`Intraday fetch failed for ${symbol}`, error);

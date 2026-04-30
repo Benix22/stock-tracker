@@ -92,7 +92,7 @@ export function StockCard({ stock }: StockCardProps) {
                 <CardContent>
                     <div className="text-2xl font-bold flex items-center gap-2">
                         <FlashingDigits value={stock.price} decimals={decimals} prefix="$" onlyLastTwo={false} />
-                        {stock.isLive && (
+                        {stock.isLive && isMarketOpen && (
                             <span className="bg-blue-500/10 text-blue-500 text-[10px] px-1.5 py-0.5 rounded border border-blue-500/20 font-bold animate-pulse">
                                 VPS
                             </span>
