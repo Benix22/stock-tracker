@@ -38,9 +38,18 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
     const [isMarketOpen, setIsMarketOpen] = useState(checkMarketOpen());
     const { lastUpdate, connected } = useStockSocket();
 
+    const [wsSymbols, setWsSymbols] = useState<Set<string>>(new Set());
+
     // Actualización inmediata por WebSockets
     useEffect(() => {
         if (lastUpdate) {
+            setWsSymbols(prev => {
+                if (prev.has(lastUpdate.symbol)) return prev;
+                const next = new Set(prev);
+                next.add(lastUpdate.symbol);
+                return next;
+            });
+
             // Dashboard Stocks
             setStocks(prev => prev.map(s => {
                 if (s.symbol === lastUpdate.symbol) {
@@ -99,22 +108,24 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
         const pollInterval = isMarketOpen ? 5000 : 15000;
 
         const interval = setInterval(async () => { 
-            // Si el socket está conectado, NO hacemos polling
-            if (connectedRef.current) {
+            const allSymbols = symbolsRef.current;
+            const hasUncoveredSymbols = allSymbols.some(s => !wsSymbols.has(s));
+
+            // Si el socket está conectado Y no hay símbolos sin cobertura de WS, no hacemos polling
+            if (connectedRef.current && !hasUncoveredSymbols) {
                 return; 
             }
 
             if (updatingRef.current) return; 
             updatingRef.current = true;
 
-            const allSymbols = symbolsRef.current;
             if (allSymbols.length === 0) {
                 updatingRef.current = false;
                 return;
             }
 
             try {
-                console.log(`⏱️ [Dashboard] Ejecutando polling de seguridad para ${allSymbols.length} símbolos...`);
+                console.log(`⏱️ [Dashboard] Polling de seguridad (${hasUncoveredSymbols ? 'Hay símbolos sin WS' : 'Socket OFF'}) para ${allSymbols.length} símbolos...`);
                 const updatedQuotes = await getBatchStockQuotes(allSymbols);
                 if (!mounted) return;
                 
@@ -150,7 +161,7 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
             mounted = false;
             clearInterval(interval);
         };
-    }, [isMarketOpen, connected]); 
+    }, [isMarketOpen, connected, wsSymbols]); 
 
 
     const handleSearch = async (symbol: string) => {

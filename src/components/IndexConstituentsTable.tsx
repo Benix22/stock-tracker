@@ -43,7 +43,7 @@ export function IndexConstituentsTable({ symbol, indexName, initialData }: Index
             } finally {
                 updatingRef.current = false
             }
-        }, 1000)
+        }, 5000)
 
         return () => {
             mounted = false

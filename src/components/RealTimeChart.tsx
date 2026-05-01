@@ -174,9 +174,12 @@ export function RealTimeChart({
 
     const { lastUpdate, connected } = useStockSocket();
 
+    const [hasReceivedWS, setHasReceivedWS] = useState(false);
+
     // Actualización instantánea por WebSocket
     useEffect(() => {
         if (lastUpdate && lastUpdate.symbol === symbol) {
+            setHasReceivedWS(true);
             setData(prev => {
                 if (prev.length === 0) return prev;
                 const newData = [...prev];
@@ -243,8 +246,8 @@ export function RealTimeChart({
                             }
                         }
                     }
-                } else if (!connectedRef.current) { // Solo hacemos polling si NO estamos por WebSocket
-                    console.log(`⏱️ [Chart:${symbol}] Ejecutando polling de seguridad...`);
+                } else if (!connectedRef.current || !hasReceivedWS) { // Polling si NO hay socket O si este símbolo no llega por socket
+                    console.log(`⏱️ [Chart:${symbol}] Ejecutando polling de seguridad (Socket: ${connectedRef.current ? 'OK' : 'OFF'}, WS_Data: ${hasReceivedWS ? 'OK' : 'NO'})...`);
                     // Optimized: Only fetch the latest quote
                     const quote = await fetchStockQuote(symbol);
                     if (quote && mounted) {
@@ -277,10 +280,10 @@ export function RealTimeChart({
         // Heavy poll (full history) every 5 minutes
         const heavyInterval = setInterval(() => fetchData(true), 300000);
         
-        // Light poll (price only) - Solo si el socket está desconectado
+        // Light poll (price only) - Si el socket no está conectado O no ha enviado datos de este símbolo
         const pollInterval = isMarketOpen ? 5000 : 15000;
         const lightInterval = setInterval(() => {
-            if (!connectedRef.current) fetchData(false);
+            if (!connectedRef.current || !hasReceivedWS) fetchData(false);
         }, pollInterval);
         
         return () => {
@@ -288,7 +291,8 @@ export function RealTimeChart({
             clearInterval(heavyInterval);
             clearInterval(lightInterval);
         };
-    }, [symbol, initialData.length, isCustom, onPriceUpdate, isMarketOpen]);
+    }, [symbol, initialData.length, isCustom, onPriceUpdate, isMarketOpen, hasReceivedWS]);
+
 
     if (loading && (!displayData || displayData.length === 0)) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;

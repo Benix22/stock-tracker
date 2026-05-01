@@ -333,9 +333,9 @@ export function WorldIndices({ showMacro = true, initialData = [], disablePollin
     }, [disablePolling, isMarketOpen]); // Eliminamos initialData de aquí
 
 
-    if (indicesData.length === 0 && interestRates.length === 0) return null;
-
     const router = useRouter();
+
+    if (indicesData.length === 0 && interestRates.length === 0) return null;
 
     return (
         <div className="space-y-4">
