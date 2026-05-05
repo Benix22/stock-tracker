@@ -33,6 +33,11 @@ const SYMBOLS_LIST = (process.env.SYMBOLS || 'AAPL,MSFT,GOOGL,TSLA,SGHC,NVDA')
 
 const activeSymbols = new Set<string>(SYMBOLS_LIST);
 const priceBuffer = new Map<string, any>();
+const symbolSubscriberCount = new Map<string, number>();
+const socketSubscriptions = new Map<string, Set<string>>();
+
+// Inicializamos el contador para los símbolos base
+SYMBOLS_LIST.forEach(s => symbolSubscriberCount.set(s, Infinity)); // Los base nunca se desubscriben
 
 async function startTunnel() {
   console.log('--- 🚀 INICIANDO TÚNEL CON WEBSOCKETS ---');
@@ -45,22 +50,66 @@ async function startTunnel() {
   // WebSocket Connection Handler
   io.on('connection', (socket) => {
     console.log(`🔌 Cliente conectado: ${socket.id}`);
+    socketSubscriptions.set(socket.id, new Set());
     
     socket.on('subscribe', (symbol: string) => {
       const upperSymbol = symbol.toUpperCase();
-      if (upperSymbol && !activeSymbols.has(upperSymbol)) {
+      if (!upperSymbol) return;
+
+      // 1. Registrar la suscripción para este socket
+      socketSubscriptions.get(socket.id)?.add(upperSymbol);
+
+      // 2. Incrementar el contador global de interesados
+      const currentCount = symbolSubscriberCount.get(upperSymbol) || 0;
+      symbolSubscriberCount.set(upperSymbol, currentCount + 1);
+
+      // 3. Si es el primero, suscribir en Alpaca
+      if (!activeSymbols.has(upperSymbol)) {
         console.log(`➕ [Dynamic] Suscribiendo a: ${upperSymbol}`);
         activeSymbols.add(upperSymbol);
-        
-        // Actualizamos la suscripción en el stream de Alpaca
         const currentSymbols = Array.from(activeSymbols);
         stream.subscribeForTrades(currentSymbols);
         stream.subscribeForQuotes(currentSymbols);
       }
     });
 
-    socket.on('disconnect', () => console.log(`❌ Cliente desconectado: ${socket.id}`));
+    socket.on('unsubscribe', (symbol: string) => {
+      const upperSymbol = symbol.toUpperCase();
+      handleUnsubscribe(socket.id, upperSymbol);
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`❌ Cliente desconectado: ${socket.id}`);
+      const subs = socketSubscriptions.get(socket.id);
+      if (subs) {
+        subs.forEach(symbol => handleUnsubscribe(socket.id, symbol));
+        socketSubscriptions.delete(socket.id);
+      }
+    });
   });
+
+  function handleUnsubscribe(socketId: string, symbol: string) {
+    const subs = socketSubscriptions.get(socketId);
+    if (!subs || !subs.has(symbol)) return;
+
+    subs.delete(symbol);
+    const currentCount = symbolSubscriberCount.get(symbol) || 0;
+    
+    if (currentCount !== Infinity && currentCount > 0) {
+      const newCount = currentCount - 1;
+      symbolSubscriberCount.set(symbol, newCount);
+
+      // Si ya nadie está interesado, desubscribir de Alpaca
+      if (newCount === 0 && activeSymbols.has(symbol)) {
+        console.log(`➖ [Dynamic] Desubscribiendo de Alpaca: ${symbol} (sin interesados)`);
+        activeSymbols.delete(symbol);
+        
+        // Alpaca SDK: Usamos unsubscribe para quitar solo este
+        stream.unsubscribeFromTrades([symbol]);
+        stream.unsubscribeFromQuotes([symbol]);
+      }
+    }
+  }
 
   // Agregación y Throttling (Paso 5 y 6 del diagrama)
   // Emitimos actualizaciones a máximo 5Hz (cada 200ms) para evitar saturar el cliente

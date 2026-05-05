@@ -179,8 +179,14 @@ export function RealTimeChart({
         if (connected) {
             if (symbol) subscribe(symbol);
             if (comparisonSymbol) subscribe(comparisonSymbol);
+
+            // Cleanup: Desubscribir cuando el componente se desmonte
+            return () => {
+                if (symbol) unsubscribe(symbol);
+                if (comparisonSymbol) unsubscribe(comparisonSymbol);
+            };
         }
-    }, [connected, symbol, comparisonSymbol, subscribe]);
+    }, [connected, symbol, comparisonSymbol, subscribe, unsubscribe]);
 
     const [hasReceivedWS, setHasReceivedWS] = useState(false);
 

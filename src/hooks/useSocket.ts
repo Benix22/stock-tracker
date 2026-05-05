@@ -70,5 +70,11 @@ export function useStockSocket() {
         }
     };
 
-    return { lastUpdate, connected, subscribe };
+    const unsubscribe = (symbol: string) => {
+        if (globalSocket) {
+            globalSocket.emit('unsubscribe', symbol);
+        }
+    };
+
+    return { lastUpdate, connected, subscribe, unsubscribe };
 }
