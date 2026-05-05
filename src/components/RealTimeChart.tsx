@@ -172,7 +172,7 @@ export function RealTimeChart({
         });
     }, [displayData, comparisonData, isComparisonMode, showSMA5, showSMA10, showSMA20, showRSI, showBollinger, rsiData, bbData]);
 
-    const { lastUpdate, connected, subscribe } = useStockSocket();
+    const { lastUpdate, connected, subscribe, unsubscribe } = useStockSocket();
 
     // Suscripción dinámica (Paso 3 del diagrama)
     useEffect(() => {
