@@ -172,7 +172,15 @@ export function RealTimeChart({
         });
     }, [displayData, comparisonData, isComparisonMode, showSMA5, showSMA10, showSMA20, showRSI, showBollinger, rsiData, bbData]);
 
-    const { lastUpdate, connected } = useStockSocket();
+    const { lastUpdate, connected, subscribe } = useStockSocket();
+
+    // Suscripción dinámica (Paso 3 del diagrama)
+    useEffect(() => {
+        if (connected) {
+            if (symbol) subscribe(symbol);
+            if (comparisonSymbol) subscribe(comparisonSymbol);
+        }
+    }, [connected, symbol, comparisonSymbol, subscribe]);
 
     const [hasReceivedWS, setHasReceivedWS] = useState(false);
 

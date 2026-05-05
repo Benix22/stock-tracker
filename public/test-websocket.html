@@ -62,6 +62,13 @@
 
     <div id="status" class="disconnected">🔌 ESTADO: DESCONECTADO</div>
 
+    <div style="margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid #334155;">
+        <h3 style="margin-top: 0;">➕ Suscripción Dinámica (Paso 3)</h3>
+        <input type="text" id="tickerInput" placeholder="Ticker (ej: TSLA, BTC/USD)" style="padding: 8px; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: white; width: 200px;">
+        <button id="subscribeBtn" style="padding: 8px 15px; border-radius: 4px; background: #3b82f6; color: white; border: none; cursor: pointer; font-weight: bold;">Suscribir</button>
+        <p style="font-size: 12px; color: #94a3b8; margin-top: 10px;">Esto enviará el evento 'subscribe' al VPS, que a su vez se conectará a Alpaca.</p>
+    </div>
+
     <div id="logs">
         <div class="log-entry">Esperando conexión...</div>
     </div>
@@ -72,6 +79,16 @@
 
         const statusDiv = document.getElementById('status');
         const logsDiv = document.getElementById('logs');
+        const tickerInput = document.getElementById('tickerInput');
+        const subscribeBtn = document.getElementById('subscribeBtn');
+
+        subscribeBtn.onclick = () => {
+            const ticker = tickerInput.value.toUpperCase();
+            if (ticker) {
+                socket.emit('subscribe', ticker);
+                addLog(`📡 Enviada solicitud de suscripción para: ${ticker}`);
+            }
+        };
 
         function addLog(msg, isPrice = false) {
             const div = document.createElement('div');
