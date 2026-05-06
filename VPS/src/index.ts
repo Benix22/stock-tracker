@@ -37,7 +37,21 @@ const symbolSubscriberCount = new Map<string, number>();
 const socketSubscriptions = new Map<string, Set<string>>();
 
 // Inicializamos el contador para los símbolos base
-SYMBOLS_LIST.forEach(s => symbolSubscriberCount.set(s, Infinity)); // Los base nunca se desubscriben
+// Los base nunca se desubscriben
+SYMBOLS_LIST.forEach(s => symbolSubscriberCount.set(s, Infinity));
+
+/**
+ * Filtra símbolos que Alpaca no soporta en su stream de acciones (US Stocks).
+ * Alpaca no soporta índices (^GSPC), Forex (EUR=X), ni stocks internacionales (.MC).
+ */
+function isAlpacaSymbol(symbol: string): boolean {
+  const s = symbol.toUpperCase();
+  if (s.startsWith('^')) return false; // Índices
+  if (s.includes('=')) return false;   // Forex / Commodities
+  if (s.includes('.')) return false;   // Stocks internacionales
+  if (s.includes('-')) return false;   // Formato Yahoo para Crypto (BTC-USD)
+  return true;
+}
 
 async function startTunnel() {
   console.log('--- 🚀 INICIANDO TÚNEL CON WEBSOCKETS ---');
@@ -65,13 +79,18 @@ async function startTunnel() {
         const currentCount = symbolSubscriberCount.get(upperSymbol) || 0;
         symbolSubscriberCount.set(upperSymbol, currentCount + 1);
 
-        // 3. Si es el primero, suscribir en Alpaca
+        // 3. Si es el primero, suscribir en Alpaca (solo si es un símbolo compatible)
         if (!activeSymbols.has(upperSymbol)) {
-          console.log(`➕ [Dynamic] Suscribiendo a: ${upperSymbol}`);
           activeSymbols.add(upperSymbol);
-          const currentSymbols = Array.from(activeSymbols);
-          stream.subscribeForTrades(currentSymbols);
-          stream.subscribeForQuotes(currentSymbols);
+          
+          if (isAlpacaSymbol(upperSymbol)) {
+            console.log(`➕ [Dynamic] Suscribiendo a Alpaca: ${upperSymbol}`);
+            const currentSymbols = Array.from(activeSymbols).filter(isAlpacaSymbol);
+            stream.subscribeForTrades(currentSymbols);
+            stream.subscribeForQuotes(currentSymbols);
+          } else {
+            console.log(`ℹ️ [Dynamic] Símbolo no compatible con Alpaca Stream: ${upperSymbol} (se usará polling en el cliente)`);
+          }
         }
       }
     });
@@ -107,9 +126,11 @@ async function startTunnel() {
         console.log(`➖ [Dynamic] Desubscribiendo de Alpaca: ${symbol} (sin interesados)`);
         activeSymbols.delete(symbol);
         
-        // Alpaca SDK: Usamos unsubscribe para quitar solo este
-        stream.unsubscribeFromTrades([symbol]);
-        stream.unsubscribeFromQuotes([symbol]);
+        // Alpaca SDK: Usamos unsubscribe para quitar solo este (si era compatible)
+        if (isAlpacaSymbol(symbol)) {
+          stream.unsubscribeFromTrades([symbol]);
+          stream.unsubscribeFromQuotes([symbol]);
+        }
       }
     }
   }
@@ -131,9 +152,11 @@ async function startTunnel() {
 
   stream.onConnect(() => {
     console.log('✅ Conectado a Alpaca WebSocket');
-    const initialSymbols = Array.from(activeSymbols);
-    stream.subscribeForTrades(initialSymbols);
-    stream.subscribeForQuotes(initialSymbols);
+    const initialSymbols = Array.from(activeSymbols).filter(isAlpacaSymbol);
+    if (initialSymbols.length > 0) {
+      stream.subscribeForTrades(initialSymbols);
+      stream.subscribeForQuotes(initialSymbols);
+    }
   });
 
   stream.onStockTrade(async (trade: any) => {

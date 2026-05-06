@@ -105,7 +105,7 @@ export function StockDashboard({ initialStocks, initialIndices = [], initialOver
     // Unified Real-time updates
     useEffect(() => {
         let mounted = true;
-        const pollInterval = isMarketOpen ? 5000 : 15000;
+        const pollInterval = 5000;
 
         const interval = setInterval(async () => { 
             const allSymbols = symbolsRef.current;

@@ -294,8 +294,8 @@ export function RealTimeChart({
         // Heavy poll (full history) every 5 minutes
         const heavyInterval = setInterval(() => fetchData(true), 300000);
         
-        // Light poll (price only) - Si el socket no está conectado O no ha enviado datos de este símbolo
-        const pollInterval = isMarketOpen ? 5000 : 15000;
+        // Light poll (price only)
+        const pollInterval = 5000;
         const lightInterval = setInterval(() => {
             if (!connectedRef.current || !hasReceivedWS) fetchData(false);
         }, pollInterval);
