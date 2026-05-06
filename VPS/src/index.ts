@@ -57,19 +57,22 @@ async function startTunnel() {
       if (!upperSymbol) return;
 
       // 1. Registrar la suscripción para este socket
-      socketSubscriptions.get(socket.id)?.add(upperSymbol);
+      const subs = socketSubscriptions.get(socket.id);
+      if (subs && !subs.has(upperSymbol)) {
+        subs.add(upperSymbol);
 
-      // 2. Incrementar el contador global de interesados
-      const currentCount = symbolSubscriberCount.get(upperSymbol) || 0;
-      symbolSubscriberCount.set(upperSymbol, currentCount + 1);
+        // 2. Incrementar el contador global de interesados
+        const currentCount = symbolSubscriberCount.get(upperSymbol) || 0;
+        symbolSubscriberCount.set(upperSymbol, currentCount + 1);
 
-      // 3. Si es el primero, suscribir en Alpaca
-      if (!activeSymbols.has(upperSymbol)) {
-        console.log(`➕ [Dynamic] Suscribiendo a: ${upperSymbol}`);
-        activeSymbols.add(upperSymbol);
-        const currentSymbols = Array.from(activeSymbols);
-        stream.subscribeForTrades(currentSymbols);
-        stream.subscribeForQuotes(currentSymbols);
+        // 3. Si es el primero, suscribir en Alpaca
+        if (!activeSymbols.has(upperSymbol)) {
+          console.log(`➕ [Dynamic] Suscribiendo a: ${upperSymbol}`);
+          activeSymbols.add(upperSymbol);
+          const currentSymbols = Array.from(activeSymbols);
+          stream.subscribeForTrades(currentSymbols);
+          stream.subscribeForQuotes(currentSymbols);
+        }
       }
     });
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 export interface PriceUpdate {
@@ -64,17 +64,17 @@ export function useStockSocket() {
         };
     }, []);
 
-    const subscribe = (symbol: string) => {
+    const subscribe = useCallback((symbol: string) => {
         if (globalSocket) {
             globalSocket.emit('subscribe', symbol);
         }
-    };
+    }, []);
 
-    const unsubscribe = (symbol: string) => {
+    const unsubscribe = useCallback((symbol: string) => {
         if (globalSocket) {
             globalSocket.emit('unsubscribe', symbol);
         }
-    };
+    }, []);
 
     return { lastUpdate, connected, subscribe, unsubscribe };
 }
